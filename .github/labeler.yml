@@ -1,0 +1,25 @@
+feat:
+  - head-branch: ["^feature/", "feature/"]
+
+fix:
+  - head-branch: ["^fix/", "fix/"]
+
+chore:
+  - head-branch: ["^chore/", "chore/"]
+
+ci:
+  - head-branch: ["^ci/", "ci/"]
+  - changed-files:
+    - any-glob-to-any-file: [".github/**"]
+
+infra:
+  - changed-files:
+    - any-glob-to-any-file: ["infra/**", "*.tf"]
+
+backend:
+  - changed-files:
+    - any-glob-to-any-file: ["src/**/*.java"]
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: ["src/main/resources/templates/**"]
