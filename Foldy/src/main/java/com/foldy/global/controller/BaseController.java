@@ -1,0 +1,203 @@
+package com.foldy.global.controller;
+
+import com.foldy.global.response.ApiResponse;
+import com.foldy.global.response.PageResponse;
+import com.foldy.global.dto.SearchDto;
+import com.foldy.domain.user.entity.TbUser;
+import com.foldy.domain.user.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
+
+@Slf4j
+public abstract class BaseController {
+
+    protected static final int ROW_CNT = 5;
+
+    @Autowired
+    protected UserRepository userRepository;
+
+    @Autowired
+    protected HttpServletRequest request;
+
+    // ─────────────────────────────────────────
+    // 유저 정보
+    // ─────────────────────────────────────────
+
+    // 현재 로그인한 유저의 userId 반환 — 비로그인 시 null
+    protected String getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return null;
+        return auth.getName(); // JWT subject = userId
+    }
+
+    // 현재 로그인한 유저의 Idx_User 반환 — FK로 바로 쓸 때 사용
+    protected Long getCurrentUserIdx() {
+        String userId = getCurrentUserId();
+        if (userId == null) return null;
+        return userRepository.findByUserId(userId)
+                .map(TbUser::getIdxUser)
+                .orElse(null);
+    }
+
+    // 현재 로그인한 유저의 TbUser 엔티티 반환 — 상세 정보 필요할 때 사용
+    protected TbUser getCurrentUser() {
+        String userId = getCurrentUserId();
+        if (userId == null) return null;
+        return userRepository.findByUserId(userId).orElse(null);
+    }
+
+    // ROLE_ADMIN 여부 반환 — 관리자 전용 기능 분기 처리 시 사용
+    protected boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    // 로그인 여부 반환 — 비로그인 접근 차단 시 사용
+    protected boolean isLoggedIn() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null
+                && auth.isAuthenticated()
+                && !"anonymousUser".equals(auth.getPrincipal());
+    }
+
+    // ─────────────────────────────────────────
+    // IP
+    // ─────────────────────────────────────────
+
+    // 클라이언트 IP 반환 — 프록시 환경도 대응
+    protected String getClientIp() {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty()) ip = request.getHeader("X-Real-IP");
+        if (ip == null || ip.isEmpty()) ip = request.getRemoteAddr();
+        if (ip != null && ip.contains(",")) ip = ip.split(",")[0].trim();
+        return ip;
+    }
+
+    // ─────────────────────────────────────────
+    // 페이지네이션
+    // ─────────────────────────────────────────
+
+    // 기본 페이저 — ROW_CNT 기준, createDate 최신순 정렬
+    protected Pageable getPageable(int page) {
+        return PageRequest.of(
+                Math.max(page - 1, 0),
+                ROW_CNT,
+                Sort.by(Sort.Direction.DESC, "createDate")
+        );
+    }
+
+    // 정렬 기준 지정 페이저
+    protected Pageable getPageable(int page, String sortField, Sort.Direction direction) {
+        return PageRequest.of(
+                Math.max(page - 1, 0),
+                ROW_CNT,
+                Sort.by(direction, sortField)
+        );
+    }
+
+    // 페이지 사이즈 지정 페이저
+    protected Pageable getPageable(int page, int size) {
+        return PageRequest.of(
+                Math.max(page - 1, 0),
+                size,
+                Sort.by(Sort.Direction.DESC, "createDate")
+        );
+    }
+
+    // 사이즈 + 정렬 모두 지정
+    protected Pageable getPageable(int page, int size, String sortField, Sort.Direction direction) {
+        return PageRequest.of(
+                Math.max(page - 1, 0),
+                size,
+                Sort.by(direction, sortField)
+        );
+    }
+
+    // SearchDto 기반 페이저 — 검색/필터/정렬 한번에 처리
+    protected Pageable getPageable(SearchDto search) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(search.getSortDir())
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        return PageRequest.of(
+                Math.max(search.getPage() - 1, 0),
+                search.getSize(),
+                Sort.by(direction, search.getSortField())
+        );
+    }
+
+    // Page<T> → PageResponse<T> 변환
+    protected <T> ResponseEntity<PageResponse<T>> toPageResponse(Page<T> page) {
+        return ResponseEntity.ok(
+                PageResponse.<T>builder()
+                        .result(true)
+                        .message("success")
+                        .data(page.getContent())
+                        .pagePos(page.getNumber() + 1)
+                        .pageCnt(page.getTotalPages())
+                        .totalCnt(page.getTotalElements())
+                        .rowCnt(page.getSize())
+                        .build()
+        );
+    }
+
+    // List<T> → PageResponse<T> 변환
+    protected <T> ResponseEntity<PageResponse<T>> toPageResponse(
+            List<T> data, int page, int totalPages, long totalCnt) {
+        return ResponseEntity.ok(
+                PageResponse.<T>builder()
+                        .result(true)
+                        .message("success")
+                        .data(data)
+                        .pagePos(page)
+                        .pageCnt(totalPages)
+                        .totalCnt(totalCnt)
+                        .rowCnt(ROW_CNT)
+                        .build()
+        );
+    }
+
+    // ─────────────────────────────────────────
+    // 공통 응답
+    // ─────────────────────────────────────────
+
+    // 데이터 포함 성공 응답
+    protected <T> ResponseEntity<ApiResponse<T>> ok(T data) {
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    // 데이터 없는 성공 응답
+    protected <T> ResponseEntity<ApiResponse<T>> ok() {
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    // 실패 응답
+    protected <T> ResponseEntity<ApiResponse<T>> fail(String message) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(message));
+    }
+
+    // ─────────────────────────────────────────
+    // 로깅
+    // ─────────────────────────────────────────
+
+    // INFO 로그 — 현재 userId 자동 포함
+    protected void logInfo(String message, Object... args) {
+        log.info("[{}] " + message, getCurrentUserId(), args);
+    }
+
+    // ERROR 로그 — 현재 userId + 예외 메시지 자동 포함
+    protected void logError(String message, Exception e) {
+        log.error("[{}] {} | error: {}", getCurrentUserId(), message, e.getMessage());
+    }
+}

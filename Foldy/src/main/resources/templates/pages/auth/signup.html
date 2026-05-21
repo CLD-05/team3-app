@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('회원가입')}"></head>
+<body>
+<div class="d-flex flex-column" style="height: 100vh;">
+
+    <!--헤더-->
+    <div th:replace="~{fragments/header :: header-back('회원가입')}"></div>
+
+    <!--콘텐츠-->
+    <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
+        <div class="p-6 d-flex flex-column gap-5">
+
+            <div class="card shadow-sm">
+                <div class="card-body p-6">
+
+                    <div class="mb-5">
+                        <label class="form-label fw-semibold text-gray-700">
+                            닉네임 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="nickname"
+                               class="form-control form-control-lg"
+                               placeholder="닉네임을 입력하세요">
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="form-label fw-semibold text-gray-700">
+                            이메일 <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" id="email"
+                               class="form-control form-control-lg"
+                               placeholder="이메일을 입력하세요">
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="form-label fw-semibold text-gray-700">
+                            비밀번호 <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" id="password"
+                               class="form-control form-control-lg"
+                               placeholder="8자 이상 입력하세요">
+                    </div>
+
+                    <div class="mb-7">
+                        <label class="form-label fw-semibold text-gray-700">
+                            비밀번호 확인 <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" id="passwordConfirm"
+                               class="form-control form-control-lg"
+                               placeholder="비밀번호를 다시 입력하세요">
+                    </div>
+
+                    <button type="button" onclick="handleSignup()"
+                            class="btn btn-primary w-100 btn-lg">
+                        회원가입
+                    </button>
+
+                    <div class="d-flex align-items-center justify-content-center gap-2 mt-5">
+                        <span class="fs-7 text-gray-500">이미 계정이 있으신가요?</span>
+                        <a href="/publishing/login"
+                           class="fs-7 fw-semibold text-primary">로그인</a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script th:src="@{/plugins/global/plugins.bundle.js}"></script>
+<script th:src="@{/js/scripts.bundle.js}"></script>
+
+<script>
+function handleSignup() {
+    const nickname = document.getElementById('nickname').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('passwordConfirm').value;
+
+    if (!nickname || !email || !password || !passwordConfirm) {
+        Swal.fire({
+            text: "모든 항목을 입력해주세요.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        return;
+    }
+
+    if (password.length < 8) {
+        Swal.fire({
+            text: "비밀번호는 8자 이상이어야 합니다.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        return;
+    }
+
+    if (password !== passwordConfirm) {
+        Swal.fire({
+            text: "비밀번호가 일치하지 않습니다.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        document.getElementById('passwordConfirm').value = '';
+        document.getElementById('passwordConfirm').focus();
+        return;
+    }
+
+    fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname, email, password })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.result) {
+            Swal.fire({
+                text: "회원가입이 완료되었습니다!",
+                icon: "success",
+                buttonsStyling: false,
+                confirmButtonText: "로그인하기",
+                customClass: { confirmButton: "btn btn-primary" }
+            }).then(() => location.href = '/publishing/login');
+        } else {
+            Swal.fire({
+                text: res.message,
+                icon: "error",
+                buttonsStyling: false,
+                confirmButtonText: "확인",
+                customClass: { confirmButton: "btn btn-danger" }
+            });
+        }
+    })
+    .catch(() => {
+        Swal.fire({
+            text: "서버와 통신 중 오류가 발생했습니다.",
+            icon: "error",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-danger" }
+        });
+    });
+}
+
+document.getElementById('passwordConfirm').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') handleSignup();
+});
+</script>
+
+</body>
+</html>

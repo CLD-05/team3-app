@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('로그인')}"></head>
+<body>
+<div class="d-flex flex-column" style="height: 100vh;">
+
+    <!--헤더 없음 (로그인 페이지는 심플하게)-->
+
+    <!--콘텐츠-->
+    <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center p-6">
+
+        <!--로고-->
+        <div class="d-flex flex-column align-items-center gap-2 mb-10">
+            <span style="font-size: 48px;">📝</span>
+            <span class="fw-bolder fs-1 text-gray-900">Foldy</span>
+            <span class="fs-7 text-gray-500">나만의 공부 노트</span>
+        </div>
+
+        <!--로그인 폼-->
+        <div class="card shadow-sm w-100" style="max-width: 400px;">
+            <div class="card-body p-6">
+
+                <div class="mb-5">
+                    <label class="form-label fw-semibold text-gray-700">이메일</label>
+                    <input type="email" id="email"
+                           class="form-control form-control-lg"
+                           placeholder="이메일을 입력하세요">
+                </div>
+
+                <div class="mb-7">
+                    <label class="form-label fw-semibold text-gray-700">비밀번호</label>
+                    <input type="password" id="password"
+                           class="form-control form-control-lg"
+                           placeholder="비밀번호를 입력하세요">
+                </div>
+
+                <button type="button" onclick="handleLogin()"
+                        class="btn btn-primary w-100 btn-lg">
+                    로그인
+                </button>
+
+                <div class="d-flex align-items-center justify-content-center gap-2 mt-5">
+                    <span class="fs-7 text-gray-500">계정이 없으신가요?</span>
+                    <a href="/publishing/signup"
+                       class="fs-7 fw-semibold text-primary">회원가입</a>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script th:src="@{/plugins/global/plugins.bundle.js}"></script>
+<script th:src="@{/js/scripts.bundle.js}"></script>
+
+<script>
+function getToken() {
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+        const [key, val] = c.trim().split('=');
+        if (key === 'token') return val;
+    }
+    return null;
+}
+
+// 이미 로그인된 경우 홈으로
+if (getToken()) location.href = '/publishing/home';
+
+function handleLogin() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+        Swal.fire({
+            text: "이메일과 비밀번호를 모두 입력해주세요.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        return;
+    }
+
+    fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.result) {
+            document.cookie = `token=${res.data}; path=/`;
+            location.href = '/home';
+        } else {
+            Swal.fire({
+                text: res.message,
+                icon: "error",
+                buttonsStyling: false,
+                confirmButtonText: "확인",
+                customClass: { confirmButton: "btn btn-danger" }
+            });
+            document.getElementById('password').value = '';
+            document.getElementById('password').focus();
+        }
+    })
+    .catch(() => {
+        Swal.fire({
+            text: "서버와 통신 중 오류가 발생했습니다.",
+            icon: "error",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-danger" }
+        });
+    });
+}
+
+// 엔터키 지원
+document.getElementById('password').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') handleLogin();
+});
+</script>
+
+</body>
+</html>

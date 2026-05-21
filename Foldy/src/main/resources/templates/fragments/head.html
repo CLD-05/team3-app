@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <title th:text="${title} + ' | Foldy'">Foldy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <!-- 폰트 -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700">
+
+    <!-- 플러그인 -->
+    <link th:href="@{/plugins/global/plugins.bundle.css}" rel="stylesheet">
+
+    <!-- 스타일 -->
+    <link th:href="@{/css/style.bundle.css}" rel="stylesheet">
+
+    <style>
+        /* 모바일 최적화 */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+
+        #scrollContainer {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 스크롤바 숨기기 */
+        #scrollContainer::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body></body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('마이페이지')}"></head>
+<body>
+<div class="d-flex flex-column" style="height: 100vh;">
+
+    <!--헤더-->
+    <div th:replace="~{fragments/header :: header-main}"></div>
+
+    <!--콘텐츠-->
+    <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
+        <div class="p-4 w-100 d-flex flex-column gap-4">
+
+            <!--프로필 카드-->
+            <div class="card shadow-sm">
+                <div class="card-body p-6">
+                    <div class="d-flex align-items-center gap-4 mb-6">
+                        <div class="symbol symbol-60px">
+                            <div class="symbol-label fs-2 fw-bold bg-light-primary text-primary">
+                                김
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column">
+                            <span class="fw-bolder fs-5 text-gray-800">김폴디</span>
+                            <span class="fs-7 text-gray-500">foldy@example.com</span>
+                        </div>
+                    </div>
+
+                    <!--통계 요약-->
+                    <div class="d-flex justify-content-around py-4 bg-light rounded">
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <span class="fw-bolder fs-3 text-gray-800">12</span>
+                            <span class="fs-9 text-gray-500">메모</span>
+                        </div>
+                        <div class="separator separator-vertical"></div>
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <span class="fw-bolder fs-3 text-gray-800">3</span>
+                            <span class="fs-9 text-gray-500">폴더</span>
+                        </div>
+                        <div class="separator separator-vertical"></div>
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <span class="fw-bolder fs-3 text-gray-800">5</span>
+                            <span class="fs-9 text-gray-500">태그</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--프로필 수정-->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3 class="card-title fs-6 fw-bold">프로필 수정</h3>
+                </div>
+                <div class="card-body d-flex flex-column gap-4">
+
+                    <div>
+                        <label class="form-label fw-semibold text-gray-700">닉네임</label>
+                        <input type="text" id="nickname"
+                               class="form-control form-control-lg"
+                               value="김폴디"
+                               placeholder="닉네임을 입력하세요">
+                    </div>
+
+                    <div>
+                        <label class="form-label fw-semibold text-gray-700">이메일</label>
+                        <input type="email" id="email"
+                               class="form-control form-control-lg bg-light"
+                               value="foldy@example.com"
+                               readonly>
+                        <span class="fs-8 text-gray-400 mt-1">이메일은 변경할 수 없습니다</span>
+                    </div>
+
+                    <button type="button" onclick="updateProfile()"
+                            class="btn btn-primary w-100">
+                        프로필 저장
+                    </button>
+
+                </div>
+            </div>
+
+            <!--비밀번호 변경-->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3 class="card-title fs-6 fw-bold">비밀번호 변경</h3>
+                    <div class="card-toolbar">
+                        <span class="badge badge-light-info badge-sm">선택</span>
+                    </div>
+                </div>
+                <div class="card-body d-flex flex-column gap-4">
+
+                    <div>
+                        <label class="form-label fw-semibold text-gray-700">
+                            현재 비밀번호 <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" id="currentPassword"
+                               class="form-control form-control-lg"
+                               placeholder="현재 비밀번호를 입력하세요">
+                    </div>
+
+                    <div>
+                        <label class="form-label fw-semibold text-gray-700">새 비밀번호</label>
+                        <input type="password" id="newPassword"
+                               class="form-control form-control-lg"
+                               placeholder="8자 이상 입력하세요">
+                    </div>
+
+                    <div>
+                        <label class="form-label fw-semibold text-gray-700">새 비밀번호 확인</label>
+                        <input type="password" id="newPasswordConfirm"
+                               class="form-control form-control-lg"
+                               placeholder="새 비밀번호를 다시 입력하세요">
+                    </div>
+
+                    <button type="button" onclick="updatePassword()"
+                            class="btn btn-light-primary w-100">
+                        비밀번호 변경
+                    </button>
+
+                </div>
+            </div>
+
+            <!--로그아웃 / 회원탈퇴-->
+            <div class="card shadow-sm">
+                <div class="card-body d-flex flex-column gap-3">
+                    <button type="button" onclick="handleLogout()"
+                            class="btn btn-light w-100">
+                        <i class="ki-duotone ki-exit-right fs-4 me-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                        로그아웃
+                    </button>
+                    <button type="button" onclick="handleWithdraw()"
+                            class="btn btn-light-danger w-100">
+                        회원 탈퇴
+                    </button>
+                </div>
+            </div>
+
+            <div style="height: 20px;"></div>
+
+        </div>
+    </div>
+
+    <!--네비-->
+    <div th:replace="~{fragments/navbar :: navbar-main('mypage')}"></div>
+
+</div>
+
+<script th:src="@{/plugins/global/plugins.bundle.js}"></script>
+<script th:src="@{/js/scripts.bundle.js}"></script>
+
+<script>
+function getToken() {
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+        const [key, val] = c.trim().split('=');
+        if (key === 'token') return val;
+    }
+    return null;
+}
+
+if (!getToken()) location.href = '/publishing/login';
+
+function updateProfile() {
+    const nickname = document.getElementById('nickname').value;
+    if (!nickname) {
+        Swal.fire({
+            text: "닉네임을 입력해주세요.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        return;
+    }
+    // API 연결 시 구현
+    Swal.fire({
+        text: "프로필이 수정되었습니다.",
+        icon: "success",
+        buttonsStyling: false,
+        confirmButtonText: "확인",
+        customClass: { confirmButton: "btn btn-primary" }
+    });
+}
+
+function updatePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
+
+    if (!currentPassword || !newPassword || !newPasswordConfirm) {
+        Swal.fire({
+            text: "모든 항목을 입력해주세요.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        return;
+    }
+
+    if (newPassword.length < 8) {
+        Swal.fire({
+            text: "새 비밀번호는 8자 이상이어야 합니다.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        return;
+    }
+
+    if (newPassword !== newPasswordConfirm) {
+        Swal.fire({
+            text: "새 비밀번호가 일치하지 않습니다.",
+            icon: "warning",
+            buttonsStyling: false,
+            confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
+        document.getElementById('newPasswordConfirm').value = '';
+        document.getElementById('newPasswordConfirm').focus();
+        return;
+    }
+    // API 연결 시 구현
+}
+
+function handleLogout() {
+    Swal.fire({
+        text: "로그아웃 하시겠습니까?",
+        icon: "question",
+        buttonsStyling: false,
+        showCancelButton: true,
+        confirmButtonText: "로그아웃",
+        cancelButtonText: "취소",
+        customClass: {
+            confirmButton: "btn btn-primary",
+            cancelButton: "btn btn-light"
+        }
+    }).then(result => {
+        if (result.isConfirmed) {
+            document.cookie = 'token=; max-age=0; path=/';
+            location.href = '/publishing/login';
+        }
+    });
+}
+
+function handleWithdraw() {
+    Swal.fire({
+        text: "탈퇴하면 모든 데이터가 삭제됩니다. 정말 탈퇴하시겠습니까?",
+        icon: "warning",
+        buttonsStyling: false,
+        showCancelButton: true,
+        confirmButtonText: "탈퇴하기",
+        cancelButtonText: "취소",
+        customClass: {
+            confirmButton: "btn btn-danger",
+            cancelButton: "btn btn-light"
+        }
+    }).then(result => {
+        if (result.isConfirmed) {
+            // API 연결 시 구현
+            document.cookie = 'token=; max-age=0; path=/';
+            location.href = '/publishing/login';
+        }
+    });
+}
+</script>
+
+</body>
+</html>

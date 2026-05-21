@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head></head>
+<body>
+
+    <th:block th:fragment="navbar-main(active)">
+        <div class="d-flex flex-column-auto bg-white border-top w-100">
+            <div class="d-flex flex-row justify-content-around align-items-center w-100 py-2">
+
+                <!--홈 (폴더)-->
+                <a href="/home"
+                   class="d-flex flex-column align-items-center gap-1 px-3 text-decoration-none">
+                    <i class="ki-duotone ki-home fs-2x"
+                       th:classappend="${active == 'home'} ? 'text-primary' : 'text-gray-400'">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                    </i>
+                    <span class="fs-9"
+                          th:classappend="${active == 'home'} ? 'text-primary fw-semibold' : 'text-gray-400'">홈</span>
+                </a>
+
+                <!--태그-->
+                <a href="/tag"
+                   class="d-flex flex-column align-items-center gap-1 px-3 text-decoration-none">
+                    <i class="ki-duotone ki-tag fs-2x"
+                       th:classappend="${active == 'tag'} ? 'text-primary' : 'text-gray-400'">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                    </i>
+                    <span class="fs-9"
+                          th:classappend="${active == 'tag'} ? 'text-primary fw-semibold' : 'text-gray-400'">태그</span>
+                </a>
+
+                <!--통계-->
+                <a href="/stats"
+                   class="d-flex flex-column align-items-center gap-1 px-3 text-decoration-none">
+                    <i class="ki-duotone ki-chart fs-2x"
+                       th:classappend="${active == 'stats'} ? 'text-primary' : 'text-gray-400'">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                    </i>
+                    <span class="fs-9"
+                          th:classappend="${active == 'stats'} ? 'text-primary fw-semibold' : 'text-gray-400'">통계</span>
+                </a>
+
+                <!--마이페이지-->
+                <a href="/user/mypage"
+                   class="d-flex flex-column align-items-center gap-1 px-3 text-decoration-none">
+                    <i class="ki-duotone ki-user fs-2x"
+                       th:classappend="${active == 'mypage'} ? 'text-primary' : 'text-gray-400'">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                    </i>
+                    <span class="fs-9"
+                          th:classappend="${active == 'mypage'} ? 'text-primary fw-semibold' : 'text-gray-400'">마이</span>
+                </a>
+
+            </div>
+        </div>
+    </th:block>
+
+    <!--플러스 버튼-->
+    <th:block th:fragment="btn-add(url)">
+        <a th:href="${url}"
+           class="btn btn-primary btn-icon w-50px h-50px rounded-circle shadow-lg position-fixed"
+           style="bottom: 80px; right: 20px; z-index: 999;">
+            <i class="ki-duotone ki-plus fs-2x">
+                <span class="path1"></span>
+            </i>
+        </a>
+    </th:block>
+
+</body>
+</html>
