@@ -180,6 +180,65 @@
         cursor: pointer;
         border-radius: 4px;
     }
+    .ql-editor img.img-selected {
+        outline: 2px solid #7719AA;
+        outline-offset: 2px;
+    }
+    .img-resize-handle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: #7719AA;
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        z-index: 1000;
+        pointer-events: auto;
+    }
+    .img-resize-handle.nw { cursor: nwse-resize; }
+    .img-resize-handle.ne { cursor: nesw-resize; }
+    .img-resize-handle.sw { cursor: nesw-resize; }
+    .img-resize-handle.se { cursor: nwse-resize; }
+    .img-move-hint {
+        position: absolute;
+        background: #7719AA;
+        color: white;
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        white-space: nowrap;
+        z-index: 1001;
+        pointer-events: none;
+    }
+    /* 드래그 중 3분할 영역 */
+    .img-drop-zone {
+        position: fixed;
+        pointer-events: none;
+        z-index: 99997;
+        background: rgba(119, 25, 170, 0.04);
+        border: 1px dashed rgba(119, 25, 170, 0.25);
+        transition: background 0.1s;
+    }
+    .img-drop-zone.active {
+        background: rgba(119, 25, 170, 0.15);
+        border-color: #7719AA;
+    }
+    .img-drop-zone-label {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px;
+        font-weight: 700;
+        color: #7719AA;
+        background: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .ql-editor .ql-align-center { text-align: center; }
+    .ql-editor .ql-align-right { text-align: right; }
+    .ql-editor .ql-align-left { text-align: left; }
 
     /* 읽기 모드 — 툴바 숨김 + 테두리 없음 */
     .quill-wrapper.readonly .ql-toolbar.ql-snow {
@@ -349,8 +408,6 @@
 </div>
 
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-<!-- 이미지 리사이즈/이동 모듈 -->
-<script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module-withfix@3.0.1/image-resize.min.js"></script>
 <script th:src="@{/plugins/global/plugins.bundle.js}"></script>
 <script th:src="@{/js/scripts.bundle.js}"></script>
 
@@ -450,39 +507,27 @@ function formatDate(iso) {
 function initQuill() {
     if (quill) return;
 
-    // ImageResize 모듈 등록 (CDN 로드 성공 시)
-    if (window.ImageResize) {
-        Quill.register('modules/imageResize', window.ImageResize);
-    }
-
-    const modules = {
-        toolbar: {
-            container: [
-                [{ 'header': [1, 2, 3, false] }],
-                ['bold', 'italic', 'underline'],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                ['link'],
-                ['clean'],
-                ['custom-image']  // 커스텀 사진 추가 버튼
-            ],
-            handlers: {
-                'custom-image': handleImageInsert
-            }
-        }
-    };
-
-    if (window.ImageResize) {
-        modules.imageResize = {
-            displaySize: true,        // 이미지 위에 px 크기 표시
-            modules: ['Resize', 'DisplaySize', 'Toolbar']  // 리사이즈 + 크기표시 + 정렬툴바
-        };
-    }
-
     quill = new Quill('#quillEditor', {
         theme: 'snow',
         placeholder: '이 곳에 내용을 입력하세요. 텍스트, 사진, 목록 등을 자유롭게 작성할 수 있어요...',
-        modules: modules
+        modules: {
+            toolbar: {
+                container: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['link'],
+                    ['clean'],
+                    ['custom-image']
+                ],
+                handlers: {
+                    'custom-image': handleImageInsert
+                }
+            }
+        }
     });
+
+    setupImageManipulation();
 }
 
 // 툴바의 사진 추가 버튼 핸들러 — 파일 선택 → base64 삽입
@@ -556,6 +601,7 @@ function enterCreateMode() {
 
 function setReadOnly(readonly) {
     isEditMode = !readonly;
+    if (readonly && typeof deselectImage === 'function') deselectImage();
 
     const wrapper = document.getElementById('quillWrapper');
     const title = document.getElementById('memoTitle');
@@ -738,6 +784,369 @@ function renderTags(tags) {
         span.textContent = t.name;
         container.appendChild(span);
     });
+}
+
+// ─────────────────────────────────────────
+// 이미지 선택 + 리사이즈 + 위치이동 + 좌우정렬
+// ─────────────────────────────────────────
+
+let selectedImg = null;
+let resizeHandles = [];
+let moveHint = null;
+let moveState = null;
+let ghostEl = null;
+let dropIndicator = null;
+let dropZones = [];
+let currentZone = null;
+
+function setupImageManipulation() {
+    const editor = quill.root;
+
+    editor.addEventListener('click', (e) => {
+        if (!isEditMode) { deselectImage(); return; }
+        if (e.target.tagName === 'IMG') {
+            e.stopPropagation();
+            selectImage(e.target);
+        } else {
+            deselectImage();
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (e.target.tagName === 'IMG') return;
+        if (e.target.classList && e.target.classList.contains('img-resize-handle')) return;
+        deselectImage();
+    });
+
+    window.addEventListener('scroll', positionHandles, true);
+    window.addEventListener('resize', positionHandles);
+
+    // 브라우저 기본 drag 방지 — 커스텀 mousedown 드래그로 처리
+    editor.addEventListener('dragstart', (e) => {
+        if (e.target.tagName === 'IMG') e.preventDefault();
+    });
+
+    editor.addEventListener('mousedown', onImageDragStart);
+}
+
+function selectImage(img) {
+    deselectImage();
+    selectedImg = img;
+    img.classList.add('img-selected');
+    createHandles();
+    showMoveHint();
+}
+
+function deselectImage() {
+    if (selectedImg) selectedImg.classList.remove('img-selected');
+    selectedImg = null;
+    resizeHandles.forEach(h => h.remove());
+    resizeHandles = [];
+    if (moveHint) { moveHint.remove(); moveHint = null; }
+}
+
+function createHandles() {
+    const corners = ['nw', 'ne', 'sw', 'se'];
+    corners.forEach(corner => {
+        const h = document.createElement('div');
+        h.className = 'img-resize-handle ' + corner;
+        h.dataset.corner = corner;
+        document.body.appendChild(h);
+        resizeHandles.push(h);
+
+        h.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            startResize(corner, e);
+        });
+    });
+    positionHandles();
+}
+
+function positionHandles() {
+    if (!selectedImg) return;
+    const r = selectedImg.getBoundingClientRect();
+    const sx = window.scrollX, sy = window.scrollY;
+    const positions = {
+        nw: { x: r.left + sx - 6, y: r.top + sy - 6 },
+        ne: { x: r.right + sx - 6, y: r.top + sy - 6 },
+        sw: { x: r.left + sx - 6, y: r.bottom + sy - 6 },
+        se: { x: r.right + sx - 6, y: r.bottom + sy - 6 }
+    };
+    resizeHandles.forEach(h => {
+        const p = positions[h.dataset.corner];
+        h.style.left = p.x + 'px';
+        h.style.top = p.y + 'px';
+    });
+    if (moveHint) {
+        moveHint.style.left = (r.left + sx) + 'px';
+        moveHint.style.top = (r.top + sy - 28) + 'px';
+    }
+}
+
+function showMoveHint() {
+    moveHint = document.createElement('div');
+    moveHint.className = 'img-move-hint';
+    moveHint.textContent = '🖱 드래그=위치/좌우정렬 · 모서리 핸들=크기조절';
+    document.body.appendChild(moveHint);
+    positionHandles();
+}
+
+function startResize(corner, startEvent) {
+    if (!selectedImg) return;
+    const img = selectedImg;
+    const startX = startEvent.clientX;
+    const startW = img.offsetWidth;
+    const startH = img.offsetHeight;
+    const ratio = startW / startH;
+    const isLeft = corner === 'nw' || corner === 'sw';
+
+    function onMove(e) {
+        const dx = e.clientX - startX;
+        let newW = isLeft ? (startW - dx) : (startW + dx);
+        newW = Math.max(60, Math.min(newW, quill.root.offsetWidth - 20));
+        const newH = newW / ratio;
+        img.setAttribute('width', newW);
+        img.style.width = newW + 'px';
+        img.style.height = newH + 'px';
+        positionHandles();
+    }
+    function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+}
+
+// 이미지 본체 드래그 = 위치 이동 + 좌우 정렬
+function onImageDragStart(e) {
+    if (!isEditMode) return;
+    if (e.target.tagName !== 'IMG') return;
+
+    const img = e.target;
+    const blot = Quill.find(img);
+    if (!blot) return;
+    const originalIndex = quill.getIndex(blot);
+
+    moveState = {
+        img: img,
+        src: img.getAttribute('src'),
+        widthAttr: img.getAttribute('width'),
+        widthStyle: img.style.width,
+        heightStyle: img.style.height,
+        originalIndex: originalIndex,
+        startX: e.clientX,
+        startY: e.clientY,
+        active: false
+    };
+
+    document.addEventListener('mousemove', onImageDragMove);
+    document.addEventListener('mouseup', onImageDragEnd);
+    e.preventDefault();
+}
+
+function onImageDragMove(e) {
+    if (!moveState) return;
+    const dx = Math.abs(e.clientX - moveState.startX);
+    const dy = Math.abs(e.clientY - moveState.startY);
+
+    if (!moveState.active && (dx > 6 || dy > 6)) {
+        moveState.active = true;
+        deselectImage();
+        createGhost();
+        createDropZones();
+    }
+    if (moveState.active) {
+        ghostEl.style.left = (e.clientX + 12) + 'px';
+        ghostEl.style.top = (e.clientY + 12) + 'px';
+        updateDropIndicator(e.clientX, e.clientY);
+        updateActiveZone(e.clientX);
+    }
+}
+
+function onImageDragEnd(e) {
+    document.removeEventListener('mousemove', onImageDragMove);
+    document.removeEventListener('mouseup', onImageDragEnd);
+
+    if (!moveState) return;
+
+    if (moveState.active) {
+        const dropIndex = getQuillIndexFromPoint(e.clientX, e.clientY);
+        const align = computeAlign(e.clientX);
+
+        if (dropIndex !== null && dropIndex !== moveState.originalIndex) {
+            moveImage(moveState.originalIndex, dropIndex, align);
+        } else {
+            applyAlignToImage(moveState.img, align);
+        }
+
+        if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+        if (dropIndicator) { dropIndicator.remove(); dropIndicator = null; }
+        removeDropZones();
+    }
+    moveState = null;
+}
+
+function createGhost() {
+    ghostEl = document.createElement('img');
+    ghostEl.src = moveState.src;
+    ghostEl.style.cssText = `
+        position: fixed; opacity: 0.6; pointer-events: none;
+        z-index: 99999; max-width: 160px; max-height: 120px;
+        border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    `;
+    document.body.appendChild(ghostEl);
+}
+
+function updateDropIndicator(x, y) {
+    const range = caretRangeFrom(x, y);
+    if (!range || !quill.root.contains(range.startContainer)) {
+        if (dropIndicator) dropIndicator.style.display = 'none';
+        return;
+    }
+    const rects = range.getClientRects();
+    const rect = rects[0] || range.getBoundingClientRect();
+
+    if (!dropIndicator) {
+        dropIndicator = document.createElement('div');
+        dropIndicator.style.cssText = `
+            position: fixed; width: 3px;
+            background: #7719AA; box-shadow: 0 0 4px #7719AA;
+            pointer-events: none; z-index: 99998;
+        `;
+        document.body.appendChild(dropIndicator);
+    }
+    dropIndicator.style.display = 'block';
+    dropIndicator.style.left = rect.left + 'px';
+    dropIndicator.style.top = rect.top + 'px';
+    dropIndicator.style.height = (rect.height || 20) + 'px';
+}
+
+function caretRangeFrom(x, y) {
+    if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+    if (document.caretPositionFromPoint) {
+        const pos = document.caretPositionFromPoint(x, y);
+        if (!pos) return null;
+        const r = document.createRange();
+        r.setStart(pos.offsetNode, pos.offset);
+        return r;
+    }
+    return null;
+}
+
+function getQuillIndexFromPoint(x, y) {
+    const range = caretRangeFrom(x, y);
+    if (!range || !quill.root.contains(range.startContainer)) return null;
+    const blot = Quill.find(range.startContainer, true);
+    if (!blot) return null;
+    return quill.getIndex(blot) + range.startOffset;
+}
+
+function createDropZones() {
+    removeDropZones();
+    const rect = quill.root.getBoundingClientRect();
+    const labels = { left: '◀ 왼쪽', center: '■ 가운데', right: '오른쪽 ▶' };
+    ['left', 'center', 'right'].forEach((side, i) => {
+        const el = document.createElement('div');
+        el.className = 'img-drop-zone';
+        el.style.left = (rect.left + (rect.width / 3) * i) + 'px';
+        el.style.top = rect.top + 'px';
+        el.style.width = (rect.width / 3) + 'px';
+        el.style.height = rect.height + 'px';
+
+        const label = document.createElement('div');
+        label.className = 'img-drop-zone-label';
+        label.textContent = labels[side];
+        el.appendChild(label);
+
+        document.body.appendChild(el);
+        dropZones.push({ el, side });
+    });
+}
+
+function removeDropZones() {
+    dropZones.forEach(z => z.el.remove());
+    dropZones = [];
+    currentZone = null;
+}
+
+function updateActiveZone(x) {
+    const rect = quill.root.getBoundingClientRect();
+    const relX = x - rect.left;
+    const width = rect.width;
+    let side;
+    if (relX < width / 3) side = 'left';
+    else if (relX > width * 2 / 3) side = 'right';
+    else side = 'center';
+
+    if (side !== currentZone) {
+        currentZone = side;
+        dropZones.forEach(z => z.el.classList.toggle('active', z.side === side));
+    }
+}
+
+function computeAlign(x) {
+    const rect = quill.root.getBoundingClientRect();
+    const relX = x - rect.left;
+    const width = rect.width;
+    if (relX < width / 3) return false;          // 왼쪽 = 정렬 제거 (기본값)
+    if (relX > width * 2 / 3) return 'right';
+    return 'center';
+}
+
+function applyAlignToImage(img, align) {
+    const blot = Quill.find(img);
+    if (!blot) return;
+    const idx = quill.getIndex(blot);
+    // false / null 둘 다 시도 — Quill 버전 차이 대응
+    quill.formatLine(idx, 1, 'align', align === false ? false : align);
+    // 추가 안전장치: DOM에서 ql-align-* 클래스 직접 제거
+    if (align === false) {
+        const blockEl = img.closest('p, h1, h2, h3, div');
+        if (blockEl) {
+            blockEl.classList.remove('ql-align-center', 'ql-align-right', 'ql-align-justify');
+        }
+    }
+}
+
+function moveImage(fromIndex, toIndex, align) {
+    // moveState는 onImageDragEnd 끝에서 null로 초기화되므로
+    // setTimeout 안에서 안전하게 쓸 수 있도록 로컬 변수에 캡처
+    const src = moveState.src;
+    const widthAttr = moveState.widthAttr;
+    const widthStyle = moveState.widthStyle;
+    const heightStyle = moveState.heightStyle;
+
+    quill.deleteText(fromIndex, 1, Quill.sources.USER);
+
+    let insertAt = toIndex;
+    if (toIndex > fromIndex) insertAt = toIndex - 1;
+
+    quill.insertEmbed(insertAt, 'image', src, Quill.sources.USER);
+    if (align !== undefined) {
+        quill.formatLine(insertAt, 1, 'align', align === false ? false : align);
+    }
+
+    setTimeout(() => {
+        const imgs = quill.root.querySelectorAll('img');
+        for (let i = imgs.length - 1; i >= 0; i--) {
+            if (imgs[i].getAttribute('src') === src) {
+                if (widthAttr) imgs[i].setAttribute('width', widthAttr);
+                if (widthStyle) imgs[i].style.width = widthStyle;
+                if (heightStyle) imgs[i].style.height = heightStyle;
+                if (align === false) {
+                    const blockEl = imgs[i].closest('p, h1, h2, h3, div');
+                    if (blockEl) {
+                        blockEl.classList.remove('ql-align-center', 'ql-align-right', 'ql-align-justify');
+                    }
+                }
+                break;
+            }
+        }
+    }, 0);
+
+    quill.setSelection(insertAt + 1);
 }
 </script>
 
