@@ -1,6 +1,5 @@
 package com.foldy.domain.stats.controller;
 
-
 import com.foldy.global.controller.BaseController;
 import com.foldy.global.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,10 +26,6 @@ public class StatsApiController extends BaseController {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    /**
-     * 통계 대시보드 화면에 필요한 모든 데이터(AI요약 + 태그 + 타임라인)를 한눈에 제공
-     * GET /api/stats
-     */
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardBundle() {
         if (!isLoggedIn()) return fail("로그인이 필요합니다.");
@@ -39,10 +34,10 @@ public class StatsApiController extends BaseController {
         Map<String, Object> totalBundle = new HashMap<>();
 
         try {
-            // [1] API 요약 - 기본 통계
-            long totalMemos = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbMemo WHERE idx_user = ?", Long.class, userIdx);
-            long totalFolders = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbFolder WHERE idx_user = ?", Long.class, userIdx);
-            long totalTags = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbTag WHERE idx_user = ?", Long.class, userIdx);
+            // [1] 기본 통계
+            long totalMemos   = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbMemo WHERE Idx_User = ?", Long.class, userIdx);
+            long totalFolders = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbFolder WHERE Idx_User = ?", Long.class, userIdx);
+            long totalTags    = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbTag WHERE Idx_User = ?", Long.class, userIdx);
 
             Map<String, Object> summary = new HashMap<>();
             summary.put("totalMemos", totalMemos);
@@ -50,26 +45,24 @@ public class StatsApiController extends BaseController {
             summary.put("totalTags", totalTags);
             totalBundle.put("summary", summary);
 
-            // 이번 주 메모 활동
+            // 이번 주 메모 활동 — CreateDate (ERD 컬럼명)
             List<Integer> weeklyCounts = new ArrayList<>();
-            String weeklySql = "SELECT COUNT(*) FROM tbMemo WHERE idx_user = ? AND DATE(created_at) = CURDATE() - INTERVAL ? DAY";
+            String weeklySql = "SELECT COUNT(*) FROM tbMemo WHERE Idx_User = ? AND DATE(CreateDate) = CURDATE() - INTERVAL ? DAY";
             for (int i = 6; i >= 0; i--) {
                 Integer count = jdbcTemplate.queryForObject(weeklySql, Integer.class, userIdx, i);
                 weeklyCounts.add(count != null ? count : 0);
             }
             summary.put("weeklyCounts", weeklyCounts);
 
-            // [2] 태그 통계
-            String tagSql = "SELECT t.name AS tagName, COUNT(mt.memo_id) AS cnt " +
-                            "FROM tag t LEFT JOIN memo_tag mt ON t.id = mt.tag_id " +
-                            "WHERE t.idx_user = ? GROUP BY t.id, t.name ORDER BY cnt DESC";
+            // [2] 태그 목록 — memo_tag 조인 테이블이 없으므로 tbTag 단순 조회
+            String tagSql = "SELECT Name AS tagName FROM tbTag WHERE Idx_User = ? ORDER BY Name";
             List<Map<String, Object>> tagRows = jdbcTemplate.queryForList(tagSql, userIdx);
 
             List<String> tagLabels = new ArrayList<>();
             List<Integer> tagCounts = new ArrayList<>();
             for (Map<String, Object> row : tagRows) {
                 tagLabels.add(String.valueOf(row.get("tagName")));
-                tagCounts.add(Integer.parseInt(String.valueOf(row.get("cnt"))));
+                tagCounts.add(0); // 메모-태그 연결 테이블 없어서 0
             }
 
             Map<String, Object> tagStats = new HashMap<>();
@@ -77,24 +70,24 @@ public class StatsApiController extends BaseController {
             tagStats.put("counts", tagCounts);
             totalBundle.put("tagStats", tagStats);
 
-            // [3] 최근 활동 타임라인
-            String timelineSql = "SELECT m.title, m.created_at, f.name AS folderName " +
-                                 "FROM memo m LEFT JOIN folder f ON m.folder_id = f.id " +
-                                 "WHERE m.idx_user = ? ORDER BY m.created_at DESC LIMIT 10";
+            // [3] 최근 활동 타임라인 — tbFolder, Idx_Folder, CreateDate
+            String timelineSql = "SELECT m.Title AS title, m.CreateDate AS createdAt, f.Name AS folderName " +
+                                 "FROM tbMemo m LEFT JOIN tbFolder f ON m.Idx_Folder = f.Idx_Folder " +
+                                 "WHERE m.Idx_User = ? ORDER BY m.CreateDate DESC LIMIT 10";
             List<Map<String, Object>> timelineRows = jdbcTemplate.queryForList(timelineSql, userIdx);
 
             List<Map<String, Object>> recentActivities = new ArrayList<>();
             for (Map<String, Object> row : timelineRows) {
                 Map<String, Object> activity = new HashMap<>();
-                activity.put("title", String.valueOf(row.get("title")));
+                activity.put("title",      String.valueOf(row.get("title")));
                 activity.put("folderName", row.get("folderName") != null ? String.valueOf(row.get("folderName")) : "미분류");
-                activity.put("createdAt", row.get("created_at"));
+                activity.put("createdAt",  row.get("createdAt"));   // alias 맞춤
                 recentActivities.add(activity);
             }
             totalBundle.put("timeline", recentActivities);
 
-            // [4] AI 요약
-            String memoSql = "SELECT content FROM tbMemo WHERE idx_user = ? AND content IS NOT NULL ORDER BY created_at DESC LIMIT 15";
+            // [4] AI 요약 — tbMmemo 오타 수정, Idx_User, CreateDate
+            String memoSql = "SELECT Content FROM tbMemo WHERE Idx_User = ? AND Content IS NOT NULL ORDER BY CreateDate DESC LIMIT 15";
             List<String> memoContents = jdbcTemplate.queryForList(memoSql, String.class, userIdx);
 
             String aiSummary;
@@ -121,7 +114,6 @@ public class StatsApiController extends BaseController {
         return ok(totalBundle);
     }
 
-    // Gemini API 통신 규격 메서드
     private String callGeminiApi(String prompt) {
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
 
@@ -145,7 +137,6 @@ public class StatsApiController extends BaseController {
             Map content = (Map) candidate.get("content");
             List parts = (List) content.get("parts");
             Map part = (Map) parts.get(0);
-            
             return (String) part.get("text");
         } catch (Exception e) {
             return "메모 요약 비서가 잠시 휴식 중이에요. 하지만 회원님의 학습 열정은 100% 반영 중입니다!";
