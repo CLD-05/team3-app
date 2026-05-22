@@ -1,5 +1,6 @@
 package com.foldy.domain.stats.controller;
 
+
 import com.foldy.global.controller.BaseController;
 import com.foldy.global.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,9 +40,9 @@ public class StatsApiController extends BaseController {
 
         try {
             // [1] API 요약 - 기본 통계
-            long totalMemos = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM memo WHERE user_idx = ?", Long.class, userIdx);
-            long totalFolders = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM folder WHERE user_idx = ?", Long.class, userIdx);
-            long totalTags = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tag WHERE user_idx = ?", Long.class, userIdx);
+            long totalMemos = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbMemo WHERE idx_user = ?", Long.class, userIdx);
+            long totalFolders = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbFolder WHERE idx_user = ?", Long.class, userIdx);
+            long totalTags = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tbTag WHERE idx_user = ?", Long.class, userIdx);
 
             Map<String, Object> summary = new HashMap<>();
             summary.put("totalMemos", totalMemos);
@@ -51,7 +52,7 @@ public class StatsApiController extends BaseController {
 
             // 이번 주 메모 활동
             List<Integer> weeklyCounts = new ArrayList<>();
-            String weeklySql = "SELECT COUNT(*) FROM memo WHERE user_idx = ? AND DATE(created_at) = CURDATE() - INTERVAL ? DAY";
+            String weeklySql = "SELECT COUNT(*) FROM tbMemo WHERE idx_user = ? AND DATE(created_at) = CURDATE() - INTERVAL ? DAY";
             for (int i = 6; i >= 0; i--) {
                 Integer count = jdbcTemplate.queryForObject(weeklySql, Integer.class, userIdx, i);
                 weeklyCounts.add(count != null ? count : 0);
@@ -61,7 +62,7 @@ public class StatsApiController extends BaseController {
             // [2] 태그 통계
             String tagSql = "SELECT t.name AS tagName, COUNT(mt.memo_id) AS cnt " +
                             "FROM tag t LEFT JOIN memo_tag mt ON t.id = mt.tag_id " +
-                            "WHERE t.user_idx = ? GROUP BY t.id, t.name ORDER BY cnt DESC";
+                            "WHERE t.idx_user = ? GROUP BY t.id, t.name ORDER BY cnt DESC";
             List<Map<String, Object>> tagRows = jdbcTemplate.queryForList(tagSql, userIdx);
 
             List<String> tagLabels = new ArrayList<>();
@@ -79,7 +80,7 @@ public class StatsApiController extends BaseController {
             // [3] 최근 활동 타임라인
             String timelineSql = "SELECT m.title, m.created_at, f.name AS folderName " +
                                  "FROM memo m LEFT JOIN folder f ON m.folder_id = f.id " +
-                                 "WHERE m.user_idx = ? ORDER BY m.created_at DESC LIMIT 10";
+                                 "WHERE m.idx_user = ? ORDER BY m.created_at DESC LIMIT 10";
             List<Map<String, Object>> timelineRows = jdbcTemplate.queryForList(timelineSql, userIdx);
 
             List<Map<String, Object>> recentActivities = new ArrayList<>();
@@ -93,7 +94,7 @@ public class StatsApiController extends BaseController {
             totalBundle.put("timeline", recentActivities);
 
             // [4] AI 요약
-            String memoSql = "SELECT content FROM memo WHERE user_idx = ? AND content IS NOT NULL ORDER BY created_at DESC LIMIT 15";
+            String memoSql = "SELECT content FROM tbMemo WHERE idx_user = ? AND content IS NOT NULL ORDER BY created_at DESC LIMIT 15";
             List<String> memoContents = jdbcTemplate.queryForList(memoSql, String.class, userIdx);
 
             String aiSummary;
