@@ -124,7 +124,7 @@ function getToken() {
     return null;
 }
 
-if (!getToken()) location.href = '/publishing/login';
+// if (!getToken()) location.href = '/auth/login';
 
 let selectedColor = '#FF6B6B';
 let editTagId = null;
@@ -195,7 +195,7 @@ function createTagCard(tag) {
                 <div class="d-flex align-items-center gap-3">
                     <div class="w-15px h-15px rounded-circle" style="background-color: ${color};"></div>
                     <span class="fw-semibold fs-6 text-gray-800">${escapeHtml(tag.name)}</span>
-                    <span class="fs-8 text-gray-400">메모 0개</span>
+                    <span class="fs-8 text-gray-400">메모 ${Number(tag.memoCount || 0)}개</span>
                 </div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-icon btn-light btn-edit-tag">

@@ -65,4 +65,9 @@ public class TbMemo {
         this.content = content;
         this.tags = tags;
     }
+
+    // 태그-메모 연결 기능 추가: 태그 목록 갱신
+    public void updateTags(String tags) {
+        this.tags = tags;
+    }
 }

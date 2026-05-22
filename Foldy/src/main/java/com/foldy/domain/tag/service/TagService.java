@@ -1,5 +1,7 @@
 package com.foldy.domain.tag.service;
 
+import com.foldy.domain.memo.entity.TbMemo;
+import com.foldy.domain.memo.repository.MemoRepository;
 import com.foldy.domain.tag.dto.TagRequest;
 import com.foldy.domain.tag.dto.TagResponse;
 import com.foldy.domain.tag.entity.TbTag;
@@ -7,7 +9,14 @@ import com.foldy.domain.tag.repository.TagRepository;
 import com.foldy.domain.user.entity.TbUser;
 import com.foldy.domain.user.repository.UserRepository;
 import com.foldy.global.exception.CustomException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,15 +30,19 @@ public class TagService {
 
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
+    // 태그-메모 연결 기능 추가: 태그 삭제 시 tbMemo.Tags 문자열 정리용
+    private final MemoRepository memoRepository;
 
     public List<TagResponse> getTags(Long userIdx) {
         if (userIdx == null) {
             throw CustomException.unauthorized("로그인이 필요합니다.");
         }
 
+        Map<Long, Long> memoCountByTagId = countMemosByTagId(userIdx);
+
         return tagRepository.findByUserIdxUserOrderByCreateDateDesc(userIdx)
                 .stream()
-                .map(TagResponse::from)
+                .map(tag -> TagResponse.from(tag, memoCountByTagId.getOrDefault(tag.getIdxTag(), 0L)))
                 .toList();
     }
 
@@ -63,6 +76,7 @@ public class TagService {
         }
 
         tag.update(newName, normalizeColor(request.getColor()));
+        // 태그-메모 연결 기능 추가: tbMemo.Tags는 태그 ID 저장 방식이라 이름 변경 전파는 필요 없음
         return TagResponse.from(tag);
     }
 
@@ -70,7 +84,54 @@ public class TagService {
     public void deleteTag(Long userIdx, Long tagIdx) {
         validateUserIdx(userIdx);
         TbTag tag = findOwnedTag(userIdx, tagIdx);
+        removeTagFromUserMemos(userIdx, tagIdx);
         tagRepository.delete(tag);
+    }
+
+    // 태그-메모 연결 기능 추가: 삭제된 태그 ID를 사용자의 모든 메모 Tags 문자열에서 제거
+    private void removeTagFromUserMemos(Long userIdx, Long tagIdx) {
+        String tagIdValue = String.valueOf(tagIdx);
+        for (TbMemo memo : memoRepository.findByUser_IdxUser(userIdx)) {
+            List<String> remainingTagIds = parseTagIdValues(memo.getTags()).stream()
+                    .filter(tagId -> !tagId.equals(tagIdValue))
+                    .toList();
+            memo.updateTags(joinTagIdValues(remainingTagIds));
+        }
+    }
+
+    // 태그-메모 연결 기능 추가: tbMemo.Tags에 저장된 태그 ID 기준으로 태그별 메모 개수 계산
+    private Map<Long, Long> countMemosByTagId(Long userIdx) {
+        Map<Long, Long> counts = new HashMap<>();
+        for (TbMemo memo : memoRepository.findByUser_IdxUser(userIdx)) {
+            for (String tagIdValue : parseTagIdValues(memo.getTags())) {
+                try {
+                    Long tagId = Long.parseLong(tagIdValue);
+                    counts.merge(tagId, 1L, Long::sum);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return counts;
+    }
+
+    // 태그-메모 연결 기능 추가: tbMemo.Tags의 ID 문자열을 중복 없는 목록으로 변환
+    private List<String> parseTagIdValues(String tags) {
+        if (tags == null || tags.isBlank()) {
+            return Collections.emptyList();
+        }
+        Set<String> tagIds = new LinkedHashSet<>();
+        for (String tagId : tags.split(",")) {
+            String normalized = tagId.trim();
+            if (!normalized.isEmpty()) tagIds.add(normalized);
+        }
+        return new ArrayList<>(tagIds);
+    }
+
+    // 태그-메모 연결 기능 추가: ID 목록을 tbMemo.Tags 저장 형식으로 변환
+    private String joinTagIdValues(List<String> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return null;
+        }
+        return tagIds.stream().collect(Collectors.joining(","));
     }
 
     private TbTag findOwnedTag(Long userIdx, Long tagIdx) {

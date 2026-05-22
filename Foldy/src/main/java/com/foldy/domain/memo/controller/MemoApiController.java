@@ -3,6 +3,7 @@ package com.foldy.domain.memo.controller;
 import com.foldy.domain.memo.dto.MemoCreateDto;
 import com.foldy.domain.memo.dto.MemoDetailDto;
 import com.foldy.domain.memo.dto.MemoListItemDto;
+import com.foldy.domain.memo.dto.MemoTagUpdateDto;
 import com.foldy.domain.memo.dto.MemoUpdateDto;
 import com.foldy.domain.memo.service.MemoService;
 import com.foldy.domain.user.entity.TbUser;
@@ -56,6 +57,15 @@ public class MemoApiController extends BaseController {
             @Valid @RequestBody MemoUpdateDto dto) {
         TbUser user = requireUser();
         return ok(memoService.updateMemo(idxMemo, dto, user));
+    }
+
+    // 태그-메모 연결 기능 추가: 메모의 태그 ID 목록만 통째로 수정
+    @PatchMapping("/{idxMemo}/tags")
+    public ResponseEntity<ApiResponse<MemoDetailDto>> updateMemoTags(
+            @PathVariable Long idxMemo,
+            @RequestBody MemoTagUpdateDto dto) {
+        TbUser user = requireUser();
+        return ok(memoService.updateMemoTags(idxMemo, dto, user));
     }
 
     // 메모 삭제 — DELETE /api/memo/{idxMemo}
