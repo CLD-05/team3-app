@@ -272,4 +272,16 @@ public class MemoService {
                 .updateDate(memo.getUpdateDate())
                 .build();
     }
+//    메모 내용 검색 로직 추가
+    @Transactional(readOnly = true)
+    public List<MemoListItemDto> searchMemosByKeyword(Long idxUser, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return List.of();
+        }
+
+        return memoRepository.searchByUserIdAndContent(idxUser, keyword)
+                .stream()
+                .map(MemoListItemDto::from) 
+                .collect(Collectors.toList());
+    }
 }

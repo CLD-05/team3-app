@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -24,6 +26,14 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exception -> exception
+                    .authenticationEntryPoint((request, response, authException) -> {
+                        // 인증 실패 시 뷰 페이지로 리다이렉트되지 않도록 401 에러와 명확한 JSON 메시지를 즉시 반환
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+                        response.getWriter().write("{\"result\":false,\"message\":\"인증에 실패했거나 토큰이 만료되었습니다.\",\"data\":null}");
+                    })
+                )
             .authorizeHttpRequests(auth -> auth
                 // 정적 리소스
                 .requestMatchers(
@@ -33,12 +43,11 @@ public class SecurityConfig {
                     "/plugins/**",
                     "/favicon.ico"
                 ).permitAll()
-                // 퍼블리싱 (개발용)
-                .requestMatchers("/publishing/**").permitAll()
                 // 페이지 — 로그인/회원가입만 허용
                 .requestMatchers(
                     "/",
-                    "/auth/**"
+                    "/auth/**",
+                    "/memo/**"
                 ).permitAll()
                 // API — 로그인/회원가입만 허용
                 .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/logout").permitAll()
