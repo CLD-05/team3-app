@@ -85,15 +85,19 @@ function handleLogin() {
 
     fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        headers: { 
+            'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+            email: email, 
+            pass: password 
+        })
     })
     .then(res => res.json())
     .then(res => {
-        if (res.result) {
-            document.cookie = `token=${res.data}; path=/`;
-            location.href = '/home';
-        } else {
+    	if (res.result) {
+    	    location.href = '/home'; 
+    	} else {
             Swal.fire({
                 text: res.message,
                 icon: "error",

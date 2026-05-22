@@ -4,29 +4,25 @@
 <body>
 <div class="d-flex flex-column" style="height: 100vh;">
 
-    <!--헤더-->
     <div th:replace="~{fragments/header :: header-main}"></div>
 
-    <!--콘텐츠-->
     <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
         <div class="p-4 w-100 d-flex flex-column gap-4">
 
-            <!--프로필 카드-->
             <div class="card shadow-sm">
                 <div class="card-body p-6">
                     <div class="d-flex align-items-center gap-4 mb-6">
                         <div class="symbol symbol-60px">
                             <div class="symbol-label fs-2 fw-bold bg-light-primary text-primary">
-                                김
+                                유
                             </div>
                         </div>
                         <div class="d-flex flex-column">
-                            <span class="fw-bolder fs-5 text-gray-800">김폴디</span>
-                            <span class="fs-7 text-gray-500">foldy@example.com</span>
+                            <span id="profileNickname" class="fw-bolder fs-5 text-gray-800">로딩 중...</span>
+                            <span id="profileEmail" class="fs-7 text-gray-500">loading...</span>
                         </div>
                     </div>
 
-                    <!--통계 요약-->
                     <div class="d-flex justify-content-around py-4 bg-light rounded">
                         <div class="d-flex flex-column align-items-center gap-1">
                             <span class="fw-bolder fs-3 text-gray-800">12</span>
@@ -46,7 +42,6 @@
                 </div>
             </div>
 
-            <!--프로필 수정-->
             <div class="card shadow-sm">
                 <div class="card-header">
                     <h3 class="card-title fs-6 fw-bold">프로필 수정</h3>
@@ -57,7 +52,7 @@
                         <label class="form-label fw-semibold text-gray-700">닉네임</label>
                         <input type="text" id="nickname"
                                class="form-control form-control-lg"
-                               value="김폴디"
+                               value=""
                                placeholder="닉네임을 입력하세요">
                     </div>
 
@@ -65,7 +60,7 @@
                         <label class="form-label fw-semibold text-gray-700">이메일</label>
                         <input type="email" id="email"
                                class="form-control form-control-lg bg-light"
-                               value="foldy@example.com"
+                               value=""
                                readonly>
                         <span class="fs-8 text-gray-400 mt-1">이메일은 변경할 수 없습니다</span>
                     </div>
@@ -78,7 +73,6 @@
                 </div>
             </div>
 
-            <!--비밀번호 변경-->
             <div class="card shadow-sm">
                 <div class="card-header">
                     <h3 class="card-title fs-6 fw-bold">비밀번호 변경</h3>
@@ -119,7 +113,6 @@
                 </div>
             </div>
 
-            <!--로그아웃 / 회원탈퇴-->
             <div class="card shadow-sm">
                 <div class="card-body d-flex flex-column gap-3">
                     <button type="button" onclick="handleLogout()"
@@ -142,7 +135,6 @@
         </div>
     </div>
 
-    <!--네비-->
     <div th:replace="~{fragments/navbar :: navbar-main('mypage')}"></div>
 
 </div>
@@ -150,82 +142,76 @@
 <script th:src="@{/plugins/global/plugins.bundle.js}"></script>
 <script th:src="@{/js/scripts.bundle.js}"></script>
 
-<script>
-function getToken() {
-    const cookies = document.cookie.split(';');
-    for (let c of cookies) {
-        const [key, val] = c.trim().split('=');
-        if (key === 'token') return val;
-    }
-    return null;
-}
+<script th:inline="javascript">
+document.addEventListener("DOMContentLoaded", function () {
+    // 화면 켜지자마자 내 정보 조회 API 호출
+    fetch('/api/auth/me', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => {
+        if (res.status === 401 || res.status === 403) {
+            location.href = '/auth/login';
+            return;
+        }
+        return res.json();
+    })
+    .then(res => {
+        if (res && res.result) {
+            // id를 기준으로 확실하고 안전하게 데이터를 주입합니다.
+            document.getElementById('profileNickname').textContent = res.data.nickname;
+            document.getElementById('profileEmail').textContent = res.data.email;
+            
+            document.getElementById('nickname').value = res.data.nickname;
+            document.getElementById('email').value = res.data.email;
+        }
+    })
+    .catch(err => console.error("프로필 조회 실패:", err));
+});
 
-if (!getToken()) location.href = '/publishing/login';
-
+// 프로필 수정
 function updateProfile() {
     const nickname = document.getElementById('nickname').value;
     if (!nickname) {
-        Swal.fire({
-            text: "닉네임을 입력해주세요.",
-            icon: "warning",
-            buttonsStyling: false,
-            confirmButtonText: "확인",
-            customClass: { confirmButton: "btn btn-primary" }
-        });
+        Swal.fire({ text: "닉네임을 입력해주세요.", icon: "warning", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } });
         return;
     }
-    // API 연결 시 구현
-    Swal.fire({
-        text: "프로필이 수정되었습니다.",
-        icon: "success",
-        buttonsStyling: false,
-        confirmButtonText: "확인",
-        customClass: { confirmButton: "btn btn-primary" }
+
+    fetch('/api/auth/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: nickname })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.result) {
+            Swal.fire({ text: "프로필이 수정되었습니다.", icon: "success", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } })
+            .then(() => location.reload());
+        }
     });
 }
 
+// 비밀번호 변경
 function updatePassword() {
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
     const newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
 
     if (!currentPassword || !newPassword || !newPasswordConfirm) {
-        Swal.fire({
-            text: "모든 항목을 입력해주세요.",
-            icon: "warning",
-            buttonsStyling: false,
-            confirmButtonText: "확인",
-            customClass: { confirmButton: "btn btn-primary" }
-        });
+        Swal.fire({ text: "모든 항목을 입력해주세요.", icon: "warning", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } });
         return;
     }
-
     if (newPassword.length < 8) {
-        Swal.fire({
-            text: "새 비밀번호는 8자 이상이어야 합니다.",
-            icon: "warning",
-            buttonsStyling: false,
-            confirmButtonText: "확인",
-            customClass: { confirmButton: "btn btn-primary" }
-        });
+        Swal.fire({ text: "새 비밀번호는 8자 이상이어야 합니다.", icon: "warning", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } });
         return;
     }
-
     if (newPassword !== newPasswordConfirm) {
-        Swal.fire({
-            text: "새 비밀번호가 일치하지 않습니다.",
-            icon: "warning",
-            buttonsStyling: false,
-            confirmButtonText: "확인",
-            customClass: { confirmButton: "btn btn-primary" }
-        });
-        document.getElementById('newPasswordConfirm').value = '';
-        document.getElementById('newPasswordConfirm').focus();
+        Swal.fire({ text: "새 비밀번호가 일치하지 않습니다.", icon: "warning", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } });
         return;
     }
-    // API 연결 시 구현
 }
 
+// 로그아웃
 function handleLogout() {
     Swal.fire({
         text: "로그아웃 하시겠습니까?",
@@ -234,18 +220,18 @@ function handleLogout() {
         showCancelButton: true,
         confirmButtonText: "로그아웃",
         cancelButtonText: "취소",
-        customClass: {
-            confirmButton: "btn btn-primary",
-            cancelButton: "btn btn-light"
-        }
+        customClass: { confirmButton: "btn btn-primary", cancelButton: "btn btn-light" }
     }).then(result => {
         if (result.isConfirmed) {
-            document.cookie = 'token=; max-age=0; path=/';
-            location.href = '/publishing/login';
+            fetch('/api/auth/logout', { method: 'POST' })
+            .then(() => {
+                location.href = '/auth/login';
+            });
         }
     });
 }
 
+// 회원 탈퇴
 function handleWithdraw() {
     Swal.fire({
         text: "탈퇴하면 모든 데이터가 삭제됩니다. 정말 탈퇴하시겠습니까?",
@@ -254,19 +240,17 @@ function handleWithdraw() {
         showCancelButton: true,
         confirmButtonText: "탈퇴하기",
         cancelButtonText: "취소",
-        customClass: {
-            confirmButton: "btn btn-danger",
-            cancelButton: "btn btn-light"
-        }
+        customClass: { confirmButton: "btn btn-danger", cancelButton: "btn btn-light" }
     }).then(result => {
         if (result.isConfirmed) {
-            // API 연결 시 구현
-            document.cookie = 'token=; max-age=0; path=/';
-            location.href = '/publishing/login';
+            fetch('/api/auth/me', { method: 'DELETE' })
+            .then(() => {
+                Swal.fire({ text: "탈퇴가 완료되었습니다.", icon: "success", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } })
+                .then(() => { location.href = '/auth/login'; });
+            });
         }
     });
 }
 </script>
-
 </body>
 </html>
