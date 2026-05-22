@@ -2,41 +2,40 @@ package com.foldy.global.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/publishing")
+@RequestMapping("/")
 public class PublishingController {
 
     // ─────────────────────────────────────────
-    // 회원 / 인증
+    // 회원 / 인증 (주석 풀고 주소 앞에 /auth 붙임)
     // ─────────────────────────────────────────
-	@GetMapping("/login")
-	public String login() {
-	    return "pages/auth/login";  // pages/ 추가
-	}
+    @GetMapping("/auth/login") // ⭐️ 진짜 로그인 화면 주소!
+    public String login() {
+        return "pages/auth/login";  
+    }
 
-	@GetMapping("/signup")
-	public String signup() {
-	    return "pages/auth/signup";
-	}
+    @GetMapping("/auth/signup") // ⭐️ 진짜 회원가입 화면 주소!
+    public String signup() {
+        return "pages/auth/signup";
+    }
 
     // ─────────────────────────────────────────
-    // 홈 (폴더 목록)
+    // 홈 (폴더 목록 - 주석 해제)
     // ─────────────────────────────────────────
-	@GetMapping("/home")
-	public String home() {
-	    return "pages/home/home";
-	}
+    @GetMapping("/home") // ⭐️ 진짜 홈 화면 주소!
+    public String home() {
+        return "pages/home/home";
+    }
 
     // ─────────────────────────────────────────
     // 태그
     // ─────────────────────────────────────────
-	@GetMapping("/tag")
-	public String tag() {
-	    return "pages/tag/tag";
-	}
+    @GetMapping("/tag")
+    public String tag() {
+        return "pages/tag/tag";
+    }
 
     // ─────────────────────────────────────────
     // 메모
@@ -60,9 +59,9 @@ public class PublishingController {
     }
 
     // ─────────────────────────────────────────
-    // 마이페이지 (프로필)
+    // 마이페이지 (시큐리티 통과를 위해 앞에 /user 붙임)
     // ─────────────────────────────────────────
-    @GetMapping("/mypage")
+    @GetMapping("/user/mypage") // ⭐️ 진짜 마이페이지 화면 주소!
     public String mypage() {
         return "pages/user/mypage";
     }

@@ -40,16 +40,15 @@ public abstract class BaseController {
         return auth.getName(); // JWT subject = email
     }
 
-    // 현재 로그인한 유저의 Idx_User 반환
+    // JWT credentials에 담긴 userIdx 사용 (DB 조회 X)
     protected Long getCurrentUserIdx() {
-        String email = getCurrentUserId();
-        if (email == null) return null;
-        return userRepository.findByEmail(email)
-                .map(TbUser::getIdxUser)
-                .orElse(null);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return null;
+        Object cred = auth.getCredentials();
+        return (cred instanceof Long) ? (Long) cred : null;
     }
 
-    // 현재 로그인한 유저의 TbUser 엔티티 반환
+    // subject(=email)로 조회
     protected TbUser getCurrentUser() {
         String email = getCurrentUserId();
         if (email == null) return null;

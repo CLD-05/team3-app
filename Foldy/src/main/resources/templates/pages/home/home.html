@@ -149,13 +149,22 @@
 function getToken() {
     const cookies = document.cookie.split(';');
     for (let c of cookies) {
-        const [key, val] = c.trim().split('=');
-        if (key === 'token') return val;
+        // trim()을 각각의 key와 val에 확실히 먹여서 앞뒤 공백을 완벽히 제거합니다.
+        const [key, val] = c.split('=');
+        if (key && key.trim() === 'token') return val ? val.trim() : null;
     }
     return null;
 }
 
-if (!getToken()) location.href = '/publishing/login';
+// 디버깅용: 현재 토큰을 정상적으로 인식하는지 콘솔에 찍어봅니다.
+console.log("현재 읽어온 토큰:", getToken());
+
+// 💡 개발/퍼블리싱 단계에서 자꾸 튕기는 게 불편하다면 
+// 임시로 아래 한 줄을 지우거나 주석(//) 처리해 두는 것을 가장 추천합니다!
+//if (!getToken()) {
+//    console.warn("토큰이 없어서 로그인 페이지로 튕깁니다.");
+//   location.href = '/publishing/login';
+//}
 
 // 플러스 버튼 → 모달 열기
 document.querySelector('.btn-add-trigger')?.addEventListener('click', () => {

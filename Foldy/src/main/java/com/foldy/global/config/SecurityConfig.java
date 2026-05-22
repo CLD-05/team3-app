@@ -41,7 +41,7 @@ public class SecurityConfig {
                     "/auth/**"
                 ).permitAll()
                 // API — 로그인/회원가입만 허용
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/logout").permitAll()
                 // actuator health (K8s probe용)
                 .requestMatchers("/actuator/health").permitAll()
                 // 나머지 전부 인증 필요
