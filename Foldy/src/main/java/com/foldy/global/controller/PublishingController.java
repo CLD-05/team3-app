@@ -11,15 +11,15 @@ public class PublishingController {
     // ─────────────────────────────────────────
     // 회원 / 인증 (주석 풀고 주소 앞에 /auth 붙임)
     // ─────────────────────────────────────────
-    @GetMapping("/auth/login") // ⭐️ 진짜 로그인 화면 주소!
-    public String login() {
-        return "pages/auth/login";  
-    }
-
-    @GetMapping("/auth/signup") // ⭐️ 진짜 회원가입 화면 주소!
-    public String signup() {
-        return "pages/auth/signup";
-    }
+//    @GetMapping("/auth/login") // ⭐️ 진짜 로그인 화면 주소!
+//    public String login() {
+//        return "pages/auth/login";  
+//    }
+//
+//    @GetMapping("/auth/signup") // ⭐️ 진짜 회원가입 화면 주소!
+//    public String signup() {
+//        return "pages/auth/signup";
+//    }
 
     // ─────────────────────────────────────────
     // 홈 (폴더 목록 - 주석 해제)
@@ -61,8 +61,8 @@ public class PublishingController {
     // ─────────────────────────────────────────
     // 마이페이지 (시큐리티 통과를 위해 앞에 /user 붙임)
     // ─────────────────────────────────────────
-    @GetMapping("/user/mypage") // ⭐️ 진짜 마이페이지 화면 주소!
-    public String mypage() {
-        return "pages/user/mypage";
-    }
+//    @GetMapping("/user/mypage") // ⭐️ 진짜 마이페이지 화면 주소!
+//    public String mypage() {
+//        return "pages/user/mypage";
+//    }
 }
