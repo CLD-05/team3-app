@@ -36,4 +36,9 @@ public class TbTag {
     protected void onCreate() {
         createDate = LocalDateTime.now();
     }
+
+    public void update(String name, String color) {
+        this.name = name;
+        this.color = color;
+    }
 }
