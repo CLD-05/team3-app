@@ -41,4 +41,8 @@ public class TbFolder {
     protected void onUpdate() {
         updateDate = LocalDateTime.now();
     }
+
+    public void updateName(String newName) {
+        this.name = newName;
+    }
 }
