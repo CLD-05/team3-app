@@ -23,35 +23,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TagApiController extends BaseController {
 
-    private static final Long TEMP_USER_IDX = 1L;
-
     private final TagService tagService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TagResponse>>> getTags() {
-        return ok(tagService.getTags(TEMP_USER_IDX));
-//        return ok(tagService.getTags(getCurrentUserIdx()));
+        return ok(tagService.getTags(getCurrentUserIdx()));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<TagResponse>> createTag(@Valid @RequestBody TagRequest request) {
-        return ok(tagService.createTag(TEMP_USER_IDX, request));
-//        return ok(tagService.createTag(getCurrentUserIdx(), request));
+        return ok(tagService.createTag(getCurrentUserIdx(), request));
     }
 
     @PatchMapping("/{tagId}")
     public ResponseEntity<ApiResponse<TagResponse>> updateTag(
             @PathVariable Long tagId,
             @Valid @RequestBody TagRequest request) {
-        return ok(tagService.updateTag(TEMP_USER_IDX, tagId, request));
-//        return ok(tagService.updateTag(getCurrentUserIdx(), tagId, request));
+        return ok(tagService.updateTag(getCurrentUserIdx(), tagId, request));
     }
 
     @DeleteMapping("/{tagId}")
     public ResponseEntity<ApiResponse<Void>> deleteTag(@PathVariable Long tagId) {
-        tagService.deleteTag(TEMP_USER_IDX, tagId);
+        tagService.deleteTag(getCurrentUserIdx(), tagId);
         return ok();
-//        tagService.deleteTag(getCurrentUserIdx(), tagId);
-//        return ok();
     }
 }
