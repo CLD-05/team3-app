@@ -4,6 +4,8 @@ import com.foldy.domain.memo.entity.TbMemo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,4 +20,9 @@ public interface MemoRepository extends JpaRepository<TbMemo, Long> {
 
     // 태그-메모 연결 기능 추가: 태그 삭제 시 해당 사용자의 메모 태그 문자열 정리용
     List<TbMemo> findByUser_IdxUser(Long userIdx);
+    
+    // 로그인한 유저(idxUser)의 메모 중 content 필드에 키워드가 포함된 것만 조회 (LIKE %keyword%)
+    @Query("SELECT m FROM TbMemo m WHERE m.user.idxUser = :idxUser AND m.content LIKE %:keyword%")
+    List<TbMemo> searchByUserIdAndContent(@Param("idxUser") Long idxUser, @Param("keyword") String keyword);
+
 }

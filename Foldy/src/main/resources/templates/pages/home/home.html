@@ -13,15 +13,27 @@
     <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
         <div class="p-4 w-100 d-flex flex-column gap-3">
 
-            <div class="input-group">
+            <div class="input-group shadow-sm rounded">
                 <span class="input-group-text bg-light border-0">
                     <i class="ki-duotone ki-magnifier fs-4 text-gray-500">
                         <span class="path1"></span>
                         <span class="path2"></span>
                     </i>
                 </span>
-                <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="메모 검색">
+                <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="폴더 이름을 실시간 검색하거나, 엔터를 눌러 메모 내용을 검색해보세요!">
+                <button class="btn btn-primary" type="button" id="searchBtn" onclick="executeMemoSearch()">내용 검색</button>
             </div>
+
+            <div id="memoSearchSection" class="d-none mt-2">
+                <div class="d-flex justify-content-between align-items-center border-bottom border-2 border-primary pb-2 mb-3">
+                    <h5 class="fw-bold text-primary mb-0">📝 메모 내용 검색 결과</h5>
+                    <button type="button" class="btn btn-sm btn-light-secondary fw-semibold" onclick="closeMemoSearch()">결과 닫기</button>
+                </div>
+                <div id="memoSearchResultList" class="d-flex flex-column gap-3">
+                    </div>
+            </div>
+
+            <hr id="searchDivider" class="d-none my-2">
 
             <div id="emptyState" class="d-flex flex-column align-items-center justify-content-center gap-3 py-20 d-none">
                 <span style="font-size: 48px;">📂</span>
@@ -78,7 +90,7 @@ let myModalInstance = null;
 document.addEventListener("DOMContentLoaded", function() {
     myModalInstance = new bootstrap.Modal(document.getElementById('folderModal'));
     
-    // 🚀 페이지가 켜지자마자 DB에서 실제 폴더 리스트를 강제로 조회해와서 그립니다.
+    // 페이지 로드 시 폴더 리스트 조회
     loadFoldersList();
 
     // 우하단 플러스 버튼 이벤트
@@ -108,35 +120,40 @@ document.addEventListener("DOMContentLoaded", function() {
             if (res.ok) {
                 myModalInstance.hide();
                 alert(editFolderId ? "폴더가 수정되었습니다!" : "폴더가 성공적으로 생성되었습니다!");
-                loadFoldersList(); // 갱신 후 화면만 리로드하지 않고 JS로 리스트만 리프레시!
+                loadFoldersList();
             } else {
                 alert("서버 오류가 발생했습니다.");
             }
         })
         .catch(err => console.error(err));
     });
+
+    // 검색창에서 엔터를 누르면 폴더 검색뿐만 아니라 메모 내용 검색도 실행되도록 연동
+    document.getElementById('searchInput')?.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            executeMemoSearch();
+        }
+    });
 });
 
-// 🚀 [핵심 치트키] DB 폴더 리스트 비동기 호출 및 수동 드로잉 함수
+// DB 폴더 리스트 비동기 호출 및 드로잉 함수
 function loadFoldersList() {
-    fetch('/api/folders') // 1. 아까 확인한 조회 API를 직접 찌름
+    fetch('/api/folders') 
         .then(res => res.json())
         .then(response => {
-            // ApiResponse 공통 포맷에 맞춰 데이터 바구니 획득 (response.data 혹은 response)
             const list = response.data || response;
             const container = document.getElementById('folderContainer');
             const emptyState = document.getElementById('emptyState');
             
-            container.innerHTML = ''; // 기존 리스트 초기화
+            container.innerHTML = ''; 
             
             if (!list || list.length === 0) {
-                emptyState.classList.remove('d-none'); // 폴더 없음 출력
+                emptyState.classList.remove('d-none'); 
                 return;
             }
             
             emptyState.classList.add('d-none');
             
-            // 2. 루프를 돌며 순수 데이터로 카드를 수동 가공해 박아 넣음 (타임리프 우회)
             list.forEach(folder => {
                 const dateStr = folder.createDate ? folder.createDate.substring(0, 10) : '2026-05-22';
                 
@@ -144,7 +161,7 @@ function loadFoldersList() {
                     <div class="card shadow-sm folder-card" style="cursor: pointer;" data-name="${folder.name}">
                         <div class="card-body py-4">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-3" onclick="location.href='/publishing/memo/list?folderId=${folder.idxFolder}'">
+                                <div class="d-flex align-items-center gap-3" onclick="location.href='/memo/list?folderId=${folder.idxFolder}'">
                                     <span style="font-size: 24px;">📁</span>
                                     <div class="d-flex flex-column">
                                         <span class="fw-bold fs-6 text-gray-800">${folder.name}</span>
@@ -185,7 +202,7 @@ function deleteFolder(id) {
     }
 }
 
-// 상단 검색 기능
+// 상단 폴더 실시간 검색 기능 (인풋 타이핑 시 동작)
 document.getElementById('searchInput')?.addEventListener('input', function(e) {
     const keyword = e.target.value.toLowerCase();
     const cards = document.querySelectorAll('.folder-card');
@@ -194,6 +211,107 @@ document.getElementById('searchInput')?.addEventListener('input', function(e) {
         card.classList.toggle('d-none', !folderName.includes(keyword));
     });
 });
+
+// ─────────────────────────────────────────
+// 📝 메모 내용 검색 비동기 스크립트 (세션/쿠키 연동 완료)
+// ─────────────────────────────────────────
+
+function executeMemoSearch() {
+    const keywordInput = document.getElementById("searchInput");
+    const keyword = keywordInput.value.trim();
+
+    if (!keyword) {
+        alert("검색할 메모 내용을 입력해 주세요.");
+        keywordInput.focus();
+        return;
+    }
+
+    // 세션 쿠키 기반 연동 기법 적용 (credentials: "include")
+    fetch(`/api/memo/search?keyword=${encodeURIComponent(keyword)}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "include" // 👈 브라우저의 로그인 세션 쿠키를 스프링 서버로 자동 동봉
+    })
+    .then(response => {
+        console.log("[서버 응답 상태 코드]:", response.status);
+
+        if (response.status === 401) {
+            throw new Error("SESSION_EXPIRED");
+        }
+        if (!response.ok) {
+            throw new Error(`SERVER_ERROR_CODE_${response.status}`);
+        }
+        return response.json();
+    })
+    .then(res => {
+        // ApiResponse 포맷의 내부 data 리스트 추출
+        if (res && res.data) {
+            renderMemoSearchResults(res.data);
+        } else if (res) {
+            alert(res.message || "검색 결과를 처리할 수 없습니다.");
+        }
+    })
+    .catch(err => {
+        console.error("[최종 에러 캐치]:", err);
+
+        if (err.message === "SESSION_EXPIRED") {
+            alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
+            location.href = "/auth/login";
+        } else if (err.message.startsWith("SERVER_ERROR_CODE_")) {
+            const statusCode = err.message.replace("SERVER_ERROR_CODE_", "");
+            alert(`서버 에러가 발생했습니다. (오류 코드: ${statusCode})\n백엔드 서비스 레이어의 searchMemosByKeyword 비즈니스 로직을 점검해보세요.`);
+        } else {
+            alert("서버 연결에 실패했습니다. 네트워크 상태 및 백엔드 로그를 확인해주세요.");
+        }
+    });
+}
+
+function renderMemoSearchResults(memos) {
+    const searchSection = document.getElementById("memoSearchSection");
+    const resultContainer = document.getElementById("memoSearchResultList");
+    const divider = document.getElementById("searchDivider");
+
+    resultContainer.innerHTML = ""; 
+
+    if (!memos || memos.length === 0) {
+        resultContainer.innerHTML = `
+            <div class="text-center py-5 bg-light rounded border">
+                <span class="fs-6 text-gray-500">🔍 입력하신 키워드가 담긴 메모 본문을 찾지 못했어요.</span>
+            </div>
+        `;
+    } else {
+        memos.forEach(memo => {
+            const date = memo.updateDate ? new Date(memo.updateDate) : new Date();
+            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+            const cardHtml = `
+                <div class="card shadow-sm border-start border-4 border-primary" style="cursor: pointer;" onclick="location.href='/memo/list?memoId=${memo.idxMemo}'">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex flex-column gap-1 w-100">
+                                <span class="fw-bold fs-6 text-gray-900">📌 ${memo.title || '제목 없는 메모'}</span>
+                                <p class="fs-7 text-gray-600 mb-0 mt-1" style="word-break: break-all;">${memo.contentPreview || memo.content || ''}</p>
+                            </div>
+                            <span class="badge bg-light text-gray-500 fs-9 flex-shrink-0 ms-2">${dateStr}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultContainer.insertAdjacentHTML('beforeend', cardHtml);
+        });
+    }
+
+    searchSection.classList.remove("d-none");
+    divider.classList.remove("d-none");
+}
+
+function closeMemoSearch() {
+    document.getElementById("memoSearchSection").classList.add("d-none");
+    document.getElementById("searchDivider").classList.add("d-none");
+    document.getElementById("searchInput").value = "";
+}
 </script>
 </body>
 </html>

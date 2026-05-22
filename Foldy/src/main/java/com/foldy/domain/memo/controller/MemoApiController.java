@@ -26,6 +26,7 @@ public class MemoApiController extends BaseController {
 
     private final MemoService memoService;
 
+    
     // 메모 목록 조회 — GET /api/memo?folderId={}&page={}
     @GetMapping
     public ResponseEntity<PageResponse<MemoListItemDto>> getMemoList(
@@ -97,5 +98,16 @@ public class MemoApiController extends BaseController {
         TbUser user = getCurrentUser();
         if (user == null) throw CustomException.unauthorized("로그인이 필요합니다.");
         return user;
+    }
+    
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<java.util.List<MemoListItemDto>>> searchMemos(
+            @RequestParam("keyword") String keyword) {
+        TbUser user = requireUser();
+        
+        // 💡 기존에 이미 작성되어 있던 searchMemosByKeyword를 호출합니다.
+        java.util.List<MemoListItemDto> searchResults = memoService.searchMemosByKeyword(user.getIdxUser(), keyword);
+        
+        return ok(searchResults);
     }
 }
