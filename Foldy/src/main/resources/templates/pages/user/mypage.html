@@ -25,17 +25,17 @@
 
                     <div class="d-flex justify-content-around py-4 bg-light rounded">
                         <div class="d-flex flex-column align-items-center gap-1">
-                            <span class="fw-bolder fs-3 text-gray-800">12</span>
+                            <span class="fw-bolder fs-3 text-gray-800" id="statMemo">-</span>
                             <span class="fs-9 text-gray-500">메모</span>
                         </div>
                         <div class="separator separator-vertical"></div>
                         <div class="d-flex flex-column align-items-center gap-1">
-                            <span class="fw-bolder fs-3 text-gray-800">3</span>
+                            <span class="fw-bolder fs-3 text-gray-800" id="statFolder">-</span>
                             <span class="fs-9 text-gray-500">폴더</span>
                         </div>
                         <div class="separator separator-vertical"></div>
                         <div class="d-flex flex-column align-items-center gap-1">
-                            <span class="fw-bolder fs-3 text-gray-800">5</span>
+                            <span class="fw-bolder fs-3 text-gray-800" id="statTag">-</span>
                             <span class="fs-9 text-gray-500">태그</span>
                         </div>
                     </div>
@@ -166,7 +166,19 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById('email').value = res.data.email;
         }
     })
+    
     .catch(err => console.error("프로필 조회 실패:", err));
+    
+    fetch('/api/stats')
+    .then(res => res.json())
+    .then(res => {
+        if (res.result && res.data && res.data.summary) {
+            document.getElementById('statMemo').textContent = res.data.summary.totalMemos ?? 0;
+            document.getElementById('statFolder').textContent = res.data.summary.totalFolders ?? 0;
+            document.getElementById('statTag').textContent = res.data.summary.totalTags ?? 0;
+        }
+    })
+    .catch(err => console.error("통계 조회 실패:", err));
 });
 
 // 프로필 수정
