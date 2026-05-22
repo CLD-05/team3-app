@@ -59,7 +59,7 @@ public class MemoService {
                 .distinct()
                 .toList();
 
-        Map<Long, TbTag> tagMap = loadTagMap(allTagIds);
+        Map<Long, TbTag> tagMap = loadTagMap(allTagIds, user.getIdxUser());
 
         return page.map(memo -> {
             List<MemoListItemDto.TagInfo> tagInfos = parseTagIds(memo.getTags()).stream()
@@ -188,11 +188,13 @@ public class MemoService {
                 .orElseThrow(() -> CustomException.notFound("폴더를 찾을 수 없습니다."));
     }
 
-    private Map<Long, TbTag> loadTagMap(List<Long> tagIds) {
+    // 태그-메모 연결 기능 추가: 로그인 사용자의 태그만 조회하도록 제한
+    private Map<Long, TbTag> loadTagMap(List<Long> tagIds, Long userIdx) {
         if (tagIds == null || tagIds.isEmpty()) return Collections.emptyMap();
         List<TbTag> tags = entityManager.createQuery(
-                        "SELECT t FROM TbTag t WHERE t.idxTag IN :ids", TbTag.class)
+                        "SELECT t FROM TbTag t WHERE t.idxTag IN :ids AND t.user.idxUser = :uid", TbTag.class)
                 .setParameter("ids", tagIds)
+                .setParameter("uid", userIdx)
                 .getResultList();
         Map<Long, TbTag> map = new HashMap<>();
         for (TbTag t : tags) map.put(t.getIdxTag(), t);
@@ -248,7 +250,7 @@ public class MemoService {
     }
 
     private MemoDetailDto toDetail(TbMemo memo) {
-        Map<Long, TbTag> tagMap = loadTagMap(parseTagIds(memo.getTags()));
+        Map<Long, TbTag> tagMap = loadTagMap(parseTagIds(memo.getTags()), memo.getUser().getIdxUser());
         List<MemoDetailDto.TagInfo> tagInfos = parseTagIds(memo.getTags()).stream()
                 .map(tagMap::get)
                 .filter(t -> t != null)
