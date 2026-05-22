@@ -1,10 +1,10 @@
 package com.foldy.domain.memo.dto;
 
-import lombok.Builder;
-import lombok.Getter;
-
 import java.time.LocalDateTime;
 import java.util.List;
+
+import lombok.Builder;
+import lombok.Getter;
 
 @Getter
 @Builder
