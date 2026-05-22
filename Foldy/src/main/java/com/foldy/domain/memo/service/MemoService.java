@@ -4,6 +4,7 @@ import com.foldy.domain.folder.entity.TbFolder;
 import com.foldy.domain.memo.dto.MemoCreateDto;
 import com.foldy.domain.memo.dto.MemoDetailDto;
 import com.foldy.domain.memo.dto.MemoListItemDto;
+import com.foldy.domain.memo.dto.MemoTagUpdateDto;
 import com.foldy.domain.memo.dto.MemoUpdateDto;
 import com.foldy.domain.memo.entity.TbMemo;
 import com.foldy.domain.memo.entity.TbMemoImage;
@@ -26,8 +27,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -112,6 +115,15 @@ public class MemoService {
     public MemoDetailDto updateMemo(Long idxMemo, MemoUpdateDto dto, TbUser user) {
         TbMemo memo = findOwnedMemo(idxMemo, user);
         memo.update(dto.getTitle(), dto.getContent(), joinTagIds(dto.getTagIds()));
+        return toDetail(memo);
+    }
+
+    // 태그-메모 연결 기능 추가: 메모의 태그 ID 목록만 수정
+    public MemoDetailDto updateMemoTags(Long idxMemo, MemoTagUpdateDto dto, TbUser user) {
+        TbMemo memo = findOwnedMemo(idxMemo, user);
+        List<Long> tagIds = normalizeTagIds(dto == null ? null : dto.getTagIds());
+        validateOwnedTags(tagIds, user);
+        memo.updateTags(joinTagIds(tagIds));
         return toDetail(memo);
     }
 
@@ -203,6 +215,30 @@ public class MemoService {
     private String joinTagIds(List<Long> tagIds) {
         if (tagIds == null || tagIds.isEmpty()) return null;
         return tagIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    // 태그-메모 연결 기능 추가: null/중복/잘못된 ID 제거
+    private List<Long> normalizeTagIds(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) return Collections.emptyList();
+        Set<Long> unique = new LinkedHashSet<>();
+        for (Long tagId : tagIds) {
+            if (tagId != null && tagId > 0) unique.add(tagId);
+        }
+        return new ArrayList<>(unique);
+    }
+
+    // 태그-메모 연결 기능 추가: 다른 사용자의 태그를 메모에 연결하지 못하도록 검증
+    private void validateOwnedTags(List<Long> tagIds, TbUser user) {
+        if (tagIds == null || tagIds.isEmpty()) return;
+        Long ownedCount = entityManager.createQuery(
+                        "SELECT COUNT(t) FROM TbTag t WHERE t.user.idxUser = :uid AND t.idxTag IN :ids",
+                        Long.class)
+                .setParameter("uid", user.getIdxUser())
+                .setParameter("ids", tagIds)
+                .getSingleResult();
+        if (ownedCount != tagIds.size()) {
+            throw CustomException.badRequest("사용할 수 없는 태그가 포함되어 있습니다.");
+        }
     }
 
     private String previewOf(String content) {
