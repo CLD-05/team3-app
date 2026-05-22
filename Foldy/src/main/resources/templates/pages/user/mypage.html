@@ -209,8 +209,24 @@ function updatePassword() {
         Swal.fire({ text: "새 비밀번호가 일치하지 않습니다.", icon: "warning", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } });
         return;
     }
-}
 
+    // 여기서부터 추가된 부분 ↓
+    fetch('/api/auth/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.result) {
+            Swal.fire({ text: "비밀번호가 변경되었습니다.", icon: "success", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } })
+            .then(() => location.reload());
+        } else {
+            Swal.fire({ text: res.message, icon: "error", buttonsStyling: false, confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } });
+        }
+    })
+    .catch(err => console.error("비밀번호 변경 실패:", err));
+}
 // 로그아웃
 function handleLogout() {
     Swal.fire({
