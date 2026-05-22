@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/publishing")
+//@RequestMapping("/publishing")
 public class PublishingController {
 
     // ─────────────────────────────────────────
@@ -54,10 +54,10 @@ public class PublishingController {
     // ─────────────────────────────────────────
     // 통계
     // ─────────────────────────────────────────
-    @GetMapping("/stats")
-    public String stats() {
-        return "pages/stats/stats";
-    }
+//    @GetMapping("/stats")
+//    public String stats() {
+//        return "pages/stats/stats";
+//    }
 
     // ─────────────────────────────────────────
     // 마이페이지 (프로필)

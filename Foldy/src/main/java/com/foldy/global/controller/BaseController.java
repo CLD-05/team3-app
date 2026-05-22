@@ -33,27 +33,27 @@ public abstract class BaseController {
     // 유저 정보
     // ─────────────────────────────────────────
 
-    // 현재 로그인한 유저의 userId 반환 — 비로그인 시 null
+ // 현재 로그인한 유저의 email 반환
     protected String getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) return null;
-        return auth.getName(); // JWT subject = userId
+        return auth.getName(); // JWT subject = email
     }
 
-    // 현재 로그인한 유저의 Idx_User 반환 — FK로 바로 쓸 때 사용
+    // 현재 로그인한 유저의 Idx_User 반환
     protected Long getCurrentUserIdx() {
-        String userId = getCurrentUserId();
-        if (userId == null) return null;
-        return userRepository.findByUserId(userId)
+        String email = getCurrentUserId();
+        if (email == null) return null;
+        return userRepository.findByEmail(email)
                 .map(TbUser::getIdxUser)
                 .orElse(null);
     }
 
-    // 현재 로그인한 유저의 TbUser 엔티티 반환 — 상세 정보 필요할 때 사용
+    // 현재 로그인한 유저의 TbUser 엔티티 반환
     protected TbUser getCurrentUser() {
-        String userId = getCurrentUserId();
-        if (userId == null) return null;
-        return userRepository.findByUserId(userId).orElse(null);
+        String email = getCurrentUserId();
+        if (email == null) return null;
+        return userRepository.findByEmail(email).orElse(null);
     }
 
     // ROLE_ADMIN 여부 반환 — 관리자 전용 기능 분기 처리 시 사용
