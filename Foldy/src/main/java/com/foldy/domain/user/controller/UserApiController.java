@@ -2,6 +2,7 @@ package com.foldy.domain.user.controller;
 
 import com.foldy.domain.user.dto.LoginRequest;
 import com.foldy.domain.user.dto.LoginResponse;
+import com.foldy.domain.user.dto.PasswordChangeRequest;
 import com.foldy.domain.user.dto.ProfileResponse;
 import com.foldy.domain.user.dto.ProfileUpdateRequest;
 import com.foldy.domain.user.dto.SignupRequest;
@@ -63,6 +64,12 @@ public class UserApiController extends BaseController {
         return ok();
     }
 
+    // 비밀번호 변경 (인증 필요)
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody PasswordChangeRequest req) {
+        userService.changePassword(getCurrentUserId(), req);
+        return ok();
+    }
     // 회원 탈퇴 (인증 필요) — 탈퇴 후 토큰 쿠키도 만료
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<Void>> withdraw() {

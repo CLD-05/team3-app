@@ -2,6 +2,7 @@ package com.foldy.domain.user.service;
 
 import com.foldy.domain.user.dto.LoginRequest;
 import com.foldy.domain.user.dto.LoginResponse;
+import com.foldy.domain.user.dto.PasswordChangeRequest;
 import com.foldy.domain.user.dto.ProfileResponse;
 import com.foldy.domain.user.dto.ProfileUpdateRequest;
 import com.foldy.domain.user.dto.SignupRequest;
@@ -69,6 +70,15 @@ public class UserService {
         user.changeNickname(req.nickname());
     }
 
+    // 비밀번호 변경 — 현재 비번 검증 후 새 비번으로 교체
+    @Transactional
+    public void changePassword(String email, PasswordChangeRequest req) {
+        TbUser user = getActiveUser(email);
+        if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
+            throw CustomException.badRequest("현재 비밀번호가 올바르지 않습니다.");
+        }
+        user.changePassword(passwordEncoder.encode(req.newPassword()));
+    }
     // 회원 탈퇴 (소프트 삭제)
     @Transactional
     public void withdraw(String email) {
