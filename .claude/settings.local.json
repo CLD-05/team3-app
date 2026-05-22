@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw.cmd -q -DskipTests compile)",
+      "PowerShell(if \\($env:JAVA_HOME\\) { Write-Output \"JAVA_HOME=$env:JAVA_HOME\" } else { Write-Output \"JAVA_HOME not set\" }; Get-Command java -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)",
+      "PowerShell($env:JAVA_HOME=\"C:\\\\Program Files\\\\Java\\\\jdk-17\"; & \"C:\\\\CE\\\\team3-app\\\\team3-app\\\\Foldy\\\\mvnw.cmd\" -q -DskipTests -f \"C:\\\\CE\\\\team3-app\\\\team3-app\\\\Foldy\\\\pom.xml\" compile 2>&1 | Select-Object -Last 60)",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Java/jdk-17\")",
+      "Bash(export PATH=\"$JAVA_HOME/bin:$PATH\")"
+    ]
+  }
+}
