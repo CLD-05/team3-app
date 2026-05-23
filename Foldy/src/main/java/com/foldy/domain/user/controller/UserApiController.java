@@ -84,7 +84,7 @@ public class UserApiController extends BaseController {
     private ResponseCookie buildTokenCookie(String value, Duration maxAge) {
         return ResponseCookie.from("token", value)
                 .httpOnly(true)   // JS에서 접근 불가 (XSS로 토큰 탈취 방어)
-                .secure(true)     // HTTPS 전송만. 로컬 http 테스트 시에만 false
+                .secure(false)     // HTTPS 전송만. 로컬 http 테스트 시에만 false
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(maxAge)

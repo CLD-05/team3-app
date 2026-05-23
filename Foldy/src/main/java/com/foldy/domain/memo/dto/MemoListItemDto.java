@@ -12,28 +12,32 @@ import com.foldy.domain.memo.entity.TbMemo;
 @Builder
 public class MemoListItemDto {
 
-    private Long idxMemo;
-    private String title;
-    private String contentPreview;
-    private List<TagInfo> tags;
-    private LocalDateTime updateDate;
+	private Long idxMemo;
+	private String title;
+	private String contentPreview;
+	private List<TagInfo> tags;
+	private LocalDateTime updateDate;
 
-    public record TagInfo(Long idxTag, String name, String color) {}
-    
-    public static MemoListItemDto from(TbMemo memo) {
-        // 본문 내용이 길 경우를 대비해 contentPreview에 들어갈 요약본 처리
-        // (내용이 50자보다 길면 잘라서 '...'을 붙이고, 짧으면 그대로 보여줍니다)
-        String preview = memo.getContent();
-        if (preview != null && preview.length() > 50) {
-            preview = preview.substring(0, 50) + "...";
-        }
+	public record TagInfo(Long idxTag, String name, String color) {
+	}
 
-        return MemoListItemDto.builder()
-                .idxMemo(memo.getIdxMemo())
-                .title(memo.getTitle()) 
-                .contentPreview(preview)
-                .updateDate(memo.getUpdateDate()) 
-                .tags(List.of()) // 태그는 우선 빈 리스트로 안전하게 처리
-                .build();
-    }
+	// MemoListItemDto.java
+	// ### contentPreview HTML 태그 제거 필요
+	// ### memo.getContent() 는 Quill 에디터에서 저장한 HTML입니다.
+	// ### "<p>극한의 개념...</p>" 이런 형태라서 그냥 자르면
+	// ### 화면에 HTML 태그가 그대로 노출됩니다.
+	// ### 태그를 제거하고 순수 텍스트만 추출해야 합니다.
+	public static MemoListItemDto from(TbMemo memo) {
+		String preview = memo.getContent();
+		if (preview != null) {
+			// ### HTML 태그 제거 후 미리보기 생성
+			// ### replaceAll("<[^>]*>", "") 로 모든 HTML 태그를 제거합니다.
+			preview = preview.replaceAll("<[^>]*>", "").trim();
+			if (preview.length() > 50) {
+				preview = preview.substring(0, 50) + "...";
+			}
+		}
+		return MemoListItemDto.builder().idxMemo(memo.getIdxMemo()).title(memo.getTitle()).contentPreview(preview)
+				.updateDate(memo.getUpdateDate()).tags(List.of()).build();
+	}
 }

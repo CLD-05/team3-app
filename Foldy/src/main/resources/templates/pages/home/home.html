@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <th:block th:replace="~{fragments/head :: head('홈')}"></th:block>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+<head th:replace="~{fragments/head :: head('홈')}"></head>
 <body>
 <div class="d-flex flex-column" style="height: 100vh;">
 
@@ -20,29 +16,32 @@
                         <span class="path2"></span>
                     </i>
                 </span>
-                <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="폴더 이름을 실시간 검색하거나, 엔터를 눌러 메모 내용을 검색해보세요!">
-                <button class="btn btn-primary" type="button" id="searchBtn" onclick="executeMemoSearch()">내용 검색</button>
+                <input type="text" id="searchInput"
+                       class="form-control bg-light border-0"
+                       placeholder="폴더 이름을 실시간 검색하거나, 엔터를 눌러 메모 내용을 검색해보세요!">
+                <button class="btn btn-primary" type="button"
+                        onclick="executeMemoSearch()">내용 검색</button>
             </div>
 
             <div id="memoSearchSection" class="d-none mt-2">
                 <div class="d-flex justify-content-between align-items-center border-bottom border-2 border-primary pb-2 mb-3">
                     <h5 class="fw-bold text-primary mb-0">📝 메모 내용 검색 결과</h5>
-                    <button type="button" class="btn btn-sm btn-light-secondary fw-semibold" onclick="closeMemoSearch()">결과 닫기</button>
+                    <button type="button" class="btn btn-sm btn-light fw-semibold"
+                            onclick="closeMemoSearch()">결과 닫기</button>
                 </div>
-                <div id="memoSearchResultList" class="d-flex flex-column gap-3">
-                    </div>
+                <div id="memoSearchResultList" class="d-flex flex-column gap-3"></div>
             </div>
 
             <hr id="searchDivider" class="d-none my-2">
 
-            <div id="emptyState" class="d-flex flex-column align-items-center justify-content-center gap-3 py-20 d-none">
+            <div id="emptyState"
+                 class="d-flex flex-column align-items-center justify-content-center gap-3 py-20 d-none">
                 <span style="font-size: 48px;">📂</span>
                 <span class="fs-5 fw-semibold text-gray-500">폴더가 없어요</span>
                 <span class="fs-7 text-gray-400">아래 버튼을 눌러 폴더를 만들어보세요!</span>
             </div>
 
-            <div id="folderContainer" class="d-flex flex-column gap-3">
-                </div>
+            <div id="folderContainer" class="d-flex flex-column gap-3"></div>
 
         </div>
     </div>
@@ -51,255 +50,257 @@
 
 </div>
 
-<button type="button" id="myDirectPlusBtn" 
-        class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center" 
-        style="position: fixed; bottom: 100px; right: 25px; width: 60px; height: 60px; z-index: 99999; font-size: 35px; color: white; font-weight: bold; border: none;">
-    +
-</button>
+<div th:replace="~{fragments/navbar :: btn-add}"></div>
 
-<form id="folderForm" action="/api/folders" method="POST">
-    <div class="modal fade" id="folderModal" tabindex="-1" aria-hidden="true" style="z-index: 1000000;">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-primary">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold text-dark" id="folderModalTitle">새 폴더 생성</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <label for="folderNameInput" class="form-label fw-semibold text-gray-700">폴더 이름</label>
-                    <input type="text" id="folderNameInput" name="name" class="form-control form-control-lg border border-2" placeholder="생성할 폴더 이름을 입력하세요" required>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
-                    <button type="submit" class="btn btn-primary fw-bold">폴더 저장하기</button>
-                </div>
+<div class="modal fade" id="folderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-dark" id="folderModalTitle">새 폴더 생성</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label fw-semibold text-gray-700">폴더 이름</label>
+                <input type="text" id="folderNameInput"
+                       class="form-control form-control-lg"
+                       placeholder="생성할 폴더 이름을 입력하세요">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary fw-bold"
+                        onclick="saveFolder()">폴더 저장하기</button>
             </div>
         </div>
     </div>
-</form>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</div>
 
 <script th:src="@{/plugins/global/plugins.bundle.js}"></script>
 <script th:src="@{/js/scripts.bundle.js}"></script>
 
 <script>
-let editFolderId = null; 
+let editFolderId = null;
 let myModalInstance = null;
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     myModalInstance = new bootstrap.Modal(document.getElementById('folderModal'));
-    
-    // 페이지 로드 시 폴더 리스트 조회
     loadFoldersList();
 
-    // 우하단 플러스 버튼 이벤트
-    document.getElementById('myDirectPlusBtn')?.addEventListener('click', function() {
-        editFolderId = null; 
-        document.getElementById('folderForm').action = "/api/folders"; 
+    document.getElementById('fabBtn')?.addEventListener('click', function () {
+        editFolderId = null;
         document.getElementById('folderModalTitle').textContent = '새 폴더 생성';
         document.getElementById('folderNameInput').value = '';
         myModalInstance.show();
     });
 
-    // 폴더 저장 처리
-    document.getElementById('folderForm')?.addEventListener('submit', function(e) {
-        e.preventDefault(); 
-        const nameValue = document.getElementById('folderNameInput').value.trim();
-        if (!nameValue) return;
-
-        const targetUrl = this.action; 
-        const httpMethod = editFolderId ? 'PUT' : 'POST'; 
-        
-        fetch(targetUrl, {
-            method: httpMethod,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: nameValue }) 
-        })
-        .then(res => {
-            if (res.ok) {
-                myModalInstance.hide();
-                alert(editFolderId ? "폴더가 수정되었습니다!" : "폴더가 성공적으로 생성되었습니다!");
-                loadFoldersList();
-            } else {
-                alert("서버 오류가 발생했습니다.");
-            }
-        })
-        .catch(err => console.error(err));
-    });
-
-    // 검색창에서 엔터를 누르면 폴더 검색뿐만 아니라 메모 내용 검색도 실행되도록 연동
-    document.getElementById('searchInput')?.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') {
-            executeMemoSearch();
-        }
+    document.getElementById('searchInput')?.addEventListener('keyup', function (e) {
+        if (e.key === 'Enter') executeMemoSearch();
     });
 });
 
-// DB 폴더 리스트 비동기 호출 및 드로잉 함수
+function saveFolder() {
+    const name = document.getElementById('folderNameInput').value.trim();
+    if (!name) return;
+
+    const url    = editFolderId ? `/api/folders/${editFolderId}` : '/api/folders';
+    const method = editFolderId ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.result) {
+            myModalInstance.hide();
+            Swal.fire({
+                text: editFolderId ? "폴더가 수정되었습니다." : "폴더가 생성되었습니다.",
+                icon: "success", buttonsStyling: false,
+                confirmButtonText: "확인",
+                customClass: { confirmButton: "btn btn-primary" }
+            }).then(() => loadFoldersList());
+        } else {
+            Swal.fire({
+                text: res.message || "서버 오류가 발생했습니다.",
+                icon: "error", buttonsStyling: false,
+                confirmButtonText: "확인",
+                customClass: { confirmButton: "btn btn-danger" }
+            });
+        }
+    })
+    .catch(err => console.error(err));
+}
+
 function loadFoldersList() {
-    fetch('/api/folders') 
-        .then(res => res.json())
-        .then(response => {
-            const list = response.data || response;
-            const container = document.getElementById('folderContainer');
-            const emptyState = document.getElementById('emptyState');
-            
-            container.innerHTML = ''; 
-            
-            if (!list || list.length === 0) {
-                emptyState.classList.remove('d-none'); 
-                return;
-            }
-            
-            emptyState.classList.add('d-none');
-            
-            list.forEach(folder => {
-                const dateStr = folder.createDate ? folder.createDate.substring(0, 10) : '2026-05-22';
-                
-                const cardHtml = `
-                    <div class="card shadow-sm folder-card" style="cursor: pointer;" data-name="${folder.name}">
-                        <div class="card-body py-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-3" onclick="location.href='/memo/list?folderId=${folder.idxFolder}'">
-                                    <span style="font-size: 24px;">📁</span>
-                                    <div class="d-flex flex-column">
-                                        <span class="fw-bold fs-6 text-gray-800">${folder.name}</span>
-                                        <span class="fs-8 text-gray-400 mt-1">${dateStr}</span>
-                                    </div>
+    fetch('/api/folders', { credentials: 'include' })
+    .then(res => {
+        if (res.status === 401) { location.href = '/auth/login'; return; }
+        return res.json();
+    })
+    .then(response => {
+        if (!response) return;
+        const list       = response.data || [];
+        const container  = document.getElementById('folderContainer');
+        const emptyState = document.getElementById('emptyState');
+
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            emptyState.classList.remove('d-none');
+            return;
+        }
+        emptyState.classList.add('d-none');
+
+        list.forEach(folder => {
+            const dateStr = folder.createDate ? folder.createDate.substring(0, 10) : '';
+            const cardHtml = `
+                <div class="card shadow-sm folder-card"
+                     style="cursor: pointer;"
+                     data-name="${folder.name}"
+                     onclick="location.href='/memo/list?folderId=${folder.idxFolder}&folderName=${encodeURIComponent(folder.name)}'">
+                    <div class="card-body py-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-3">
+                                <span style="font-size: 24px;">📁</span>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold fs-6 text-gray-800">${folder.name}</span>
+                                    <span class="fs-8 text-gray-400 mt-1">${dateStr}</span>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <button class="btn btn-sm btn-icon btn-light" onclick="openEditFolder(${folder.idxFolder}, '${folder.name}')">⚙️</button>
-                                    <button class="btn btn-sm btn-icon btn-light-danger" onclick="deleteFolder(${folder.idxFolder})">🗑️</button>
-                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-icon btn-light"
+                                        onclick="event.stopPropagation(); openEditFolder(${folder.idxFolder}, '${folder.name}')">
+                                    <i class="ki-duotone ki-pencil fs-5">
+                                        <span class="path1"></span><span class="path2"></span>
+                                    </i>
+                                </button>
+                                <button class="btn btn-sm btn-icon btn-light-danger"
+                                        onclick="event.stopPropagation(); deleteFolder(${folder.idxFolder})">
+                                    <i class="ki-duotone ki-trash fs-5">
+                                        <span class="path1"></span><span class="path2"></span>
+                                        <span class="path3"></span><span class="path4"></span>
+                                        <span class="path5"></span>
+                                    </i>
+                                </button>
                             </div>
                         </div>
                     </div>
-                `;
-                container.insertAdjacentHTML('beforeend', cardHtml);
-            });
-        })
-        .catch(err => console.error("리스트 로드 에러:", err));
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', cardHtml);
+        });
+    })
+    .catch(err => console.error("리스트 로드 에러:", err));
 }
 
 function openEditFolder(id, name) {
-    editFolderId = id; 
-    document.getElementById('folderForm').action = `/api/folders/${id}`; 
+    editFolderId = id;
     document.getElementById('folderModalTitle').textContent = '폴더 수정';
     document.getElementById('folderNameInput').value = name;
     myModalInstance.show();
 }
 
 function deleteFolder(id) {
-    if (confirm("폴더를 삭제하면 안의 메모도 모두 삭제됩니다. 정말 삭제하시겠습니까?")) {
-        fetch(`/api/folders/${id}`, { method: 'DELETE' })
-        .then(res => {
-            if (res.ok) {
-                alert("폴더가 삭제되었습니다.");
-                loadFoldersList();
-            }
-        });
-    }
+    Swal.fire({
+        text: "폴더를 삭제하면 안의 메모도 모두 삭제됩니다. 정말 삭제하시겠습니까?",
+        icon: "warning", buttonsStyling: false,
+        showCancelButton: true,
+        confirmButtonText: "삭제", cancelButtonText: "취소",
+        customClass: { confirmButton: "btn btn-danger", cancelButton: "btn btn-light" }
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch(`/api/folders/${id}`, { method: 'DELETE', credentials: 'include' })
+            .then(res => res.json())
+            .then(res => {
+                if (res.result) {
+                    Swal.fire({
+                        text: "폴더가 삭제되었습니다.", icon: "success",
+                        buttonsStyling: false, confirmButtonText: "확인",
+                        customClass: { confirmButton: "btn btn-primary" }
+                    }).then(() => loadFoldersList());
+                }
+            });
+        }
+    });
 }
 
-// 상단 폴더 실시간 검색 기능 (인풋 타이핑 시 동작)
-document.getElementById('searchInput')?.addEventListener('input', function(e) {
+document.getElementById('searchInput')?.addEventListener('input', function (e) {
     const keyword = e.target.value.toLowerCase();
-    const cards = document.querySelectorAll('.folder-card');
-    cards.forEach(card => {
-        const folderName = card.getAttribute('data-name').toLowerCase();
-        card.classList.toggle('d-none', !folderName.includes(keyword));
+    document.querySelectorAll('.folder-card').forEach(card => {
+        card.classList.toggle('d-none',
+            !card.getAttribute('data-name').toLowerCase().includes(keyword));
     });
 });
-
-// ─────────────────────────────────────────
-// 📝 메모 내용 검색 비동기 스크립트 (세션/쿠키 연동 완료)
-// ─────────────────────────────────────────
 
 function executeMemoSearch() {
     const keywordInput = document.getElementById("searchInput");
     const keyword = keywordInput.value.trim();
 
     if (!keyword) {
-        alert("검색할 메모 내용을 입력해 주세요.");
+        Swal.fire({
+            text: "검색할 메모 내용을 입력해 주세요.", icon: "warning",
+            buttonsStyling: false, confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" }
+        });
         keywordInput.focus();
         return;
     }
 
-    // 세션 쿠키 기반 연동 기법 적용 (credentials: "include")
     fetch(`/api/memo/search?keyword=${encodeURIComponent(keyword)}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        credentials: "include" // 👈 브라우저의 로그인 세션 쿠키를 스프링 서버로 자동 동봉
-    })
-    .then(response => {
-        console.log("[서버 응답 상태 코드]:", response.status);
-
-        if (response.status === 401) {
-            throw new Error("SESSION_EXPIRED");
-        }
-        if (!response.ok) {
-            throw new Error(`SERVER_ERROR_CODE_${response.status}`);
-        }
-        return response.json();
+        credentials: 'include'
     })
     .then(res => {
-        // ApiResponse 포맷의 내부 data 리스트 추출
-        if (res && res.data) {
+        if (res.status === 401) { location.href = '/auth/login'; return; }
+        return res.json();
+    })
+    .then(res => {
+        if (!res) return;
+        if (res.data) {
             renderMemoSearchResults(res.data);
-        } else if (res) {
-            alert(res.message || "검색 결과를 처리할 수 없습니다.");
+        } else {
+            Swal.fire({
+                text: res.message || "검색 결과를 처리할 수 없습니다.",
+                icon: "warning", buttonsStyling: false,
+                confirmButtonText: "확인",
+                customClass: { confirmButton: "btn btn-primary" }
+            });
         }
     })
-    .catch(err => {
-        console.error("[최종 에러 캐치]:", err);
-
-        if (err.message === "SESSION_EXPIRED") {
-            alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
-            location.href = "/auth/login";
-        } else if (err.message.startsWith("SERVER_ERROR_CODE_")) {
-            const statusCode = err.message.replace("SERVER_ERROR_CODE_", "");
-            alert(`서버 에러가 발생했습니다. (오류 코드: ${statusCode})\n백엔드 서비스 레이어의 searchMemosByKeyword 비즈니스 로직을 점검해보세요.`);
-        } else {
-            alert("서버 연결에 실패했습니다. 네트워크 상태 및 백엔드 로그를 확인해주세요.");
-        }
-    });
+    .catch(err => console.error(err));
 }
 
 function renderMemoSearchResults(memos) {
-    const searchSection = document.getElementById("memoSearchSection");
+    const searchSection  = document.getElementById("memoSearchSection");
     const resultContainer = document.getElementById("memoSearchResultList");
-    const divider = document.getElementById("searchDivider");
+    const divider        = document.getElementById("searchDivider");
 
-    resultContainer.innerHTML = ""; 
+    resultContainer.innerHTML = "";
 
     if (!memos || memos.length === 0) {
         resultContainer.innerHTML = `
             <div class="text-center py-5 bg-light rounded border">
-                <span class="fs-6 text-gray-500">🔍 입력하신 키워드가 담긴 메모 본문을 찾지 못했어요.</span>
-            </div>
-        `;
+                <span class="fs-6 text-gray-500">🔍 입력하신 키워드가 담긴 메모를 찾지 못했어요.</span>
+            </div>`;
     } else {
         memos.forEach(memo => {
-            const date = memo.updateDate ? new Date(memo.updateDate) : new Date();
-            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-            const cardHtml = `
-                <div class="card shadow-sm border-start border-4 border-primary" style="cursor: pointer;" onclick="location.href='/memo/list?memoId=${memo.idxMemo}'">
+            const date    = memo.updateDate ? new Date(memo.updateDate) : new Date();
+            const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+            resultContainer.insertAdjacentHTML('beforeend', `
+                <div class="card shadow-sm border-start border-4 border-primary"
+                     style="cursor: pointer;"
+                     onclick="location.href='/memo/detail?id=${memo.idxMemo}'">
                     <div class="card-body py-3">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="d-flex flex-column gap-1 w-100">
                                 <span class="fw-bold fs-6 text-gray-900">📌 ${memo.title || '제목 없는 메모'}</span>
-                                <p class="fs-7 text-gray-600 mb-0 mt-1" style="word-break: break-all;">${memo.contentPreview || memo.content || ''}</p>
+                                <p class="fs-7 text-gray-600 mb-0 mt-1">${memo.contentPreview || ''}</p>
                             </div>
-                            <span class="badge bg-light text-gray-500 fs-9 flex-shrink-0 ms-2">${dateStr}</span>
+                            <span class="badge bg-light text-gray-500 fs-9 ms-2">${dateStr}</span>
                         </div>
                     </div>
                 </div>
-            `;
-            resultContainer.insertAdjacentHTML('beforeend', cardHtml);
+            `);
         });
     }
 

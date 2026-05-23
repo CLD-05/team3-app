@@ -68,6 +68,13 @@ public class UserService {
     public void updateProfile(String email, ProfileUpdateRequest req) {
         TbUser user = getActiveUser(email);
         user.changeNickname(req.nickname());
+        // ### geminiApiKey가 null이 아닐 때만 업데이트
+        // ### 빈 문자열로 보내면 키 삭제로 처리합니다.
+        if (req.geminiApiKey() != null) {
+            user.changeGeminiApiKey(
+                req.geminiApiKey().isBlank() ? null : req.geminiApiKey()
+            );
+        }
     }
 
     // 비밀번호 변경 — 현재 비번 검증 후 새 비번으로 교체

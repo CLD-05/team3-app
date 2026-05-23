@@ -11,13 +11,13 @@ import com.foldy.global.controller.BaseController;
 import com.foldy.global.exception.CustomException;
 import com.foldy.global.response.ApiResponse;
 import com.foldy.global.response.PageResponse;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/memo")
@@ -94,20 +94,28 @@ public class MemoApiController extends BaseController {
         return ok();
     }
 
+    // ### searchMemos 메서드 위치 이동
+    // ### 메서드 순서를 CRUD 순서에 맞게 정리합니다.
+    // ### GET /api/memo/search?keyword= 는 GET /api/memo/{idxMemo} 와
+    // ### 경로가 겹칠 수 있으므로 search를 위에 두는 것이 안전합니다.
+    // ### Spring은 구체적인 경로(/search)를 PathVariable({idxMemo})보다
+    // ### 우선 매핑하므로 현재는 문제 없지만 명시적으로 위에 두는 게 좋습니다.
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<MemoListItemDto>>> searchMemos(
+            @RequestParam("keyword") String keyword) {
+        TbUser user = requireUser();
+        List<MemoListItemDto> results = memoService.searchMemosByKeyword(user.getIdxUser(), keyword);
+        return ok(results);
+    }
+    
+    // ### requireUser() 헬퍼 메서드
+    // ### isLoggedIn() + getCurrentUser() 를 매번 반복하는 대신
+    // ### 하나의 메서드로 묶어서 코드 중복을 줄입니다.
+    // ### user가 null이면 즉시 401을 던져서 이후 코드가 실행되지 않습니다.
+    // ### 다른 컨트롤러에서도 동일한 패턴을 사용하면 좋습니다.
     private TbUser requireUser() {
         TbUser user = getCurrentUser();
         if (user == null) throw CustomException.unauthorized("로그인이 필요합니다.");
         return user;
-    }
-    
-    @GetMapping("/search")
-    public ResponseEntity<ApiResponse<java.util.List<MemoListItemDto>>> searchMemos(
-            @RequestParam("keyword") String keyword) {
-        TbUser user = requireUser();
-        
-        // 💡 기존에 이미 작성되어 있던 searchMemosByKeyword를 호출합니다.
-        java.util.List<MemoListItemDto> searchResults = memoService.searchMemosByKeyword(user.getIdxUser(), keyword);
-        
-        return ok(searchResults);
     }
 }

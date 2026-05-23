@@ -1,6 +1,7 @@
 package com.foldy.domain.folder.controller;
 
-import com.foldy.domain.folder.entity.TbFolder;
+import com.foldy.domain.folder.dto.FolderRequest;
+import com.foldy.domain.folder.dto.FolderResponse;
 import com.foldy.domain.folder.service.FolderService;
 import com.foldy.domain.user.entity.TbUser;
 import com.foldy.global.controller.BaseController;
@@ -8,7 +9,6 @@ import com.foldy.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -18,91 +18,48 @@ public class FolderApiController extends BaseController {
 
     private final FolderService folderService;
 
-    /**
-     * 1. 폴더 생성 API
-     * 요청: POST /api/folders {"name": "새로운 폴더명"}
-     */
     @PostMapping
     public ResponseEntity<ApiResponse<Long>> createFolder(@RequestBody FolderRequest request) {
-        // BaseController의 세션 로그인 체크 기능 활용
-        if (!isLoggedIn()) {
-            return fail("로그인이 필요한 서비스입니다.");
-        }
-
-        // BaseController의 getCurrentUser()를 통해 시큐리티 인증 유저 엔티티 획득
+        if (!isLoggedIn()) return fail("로그인이 필요한 서비스입니다.");
         TbUser currentUser = getCurrentUser();
-        
-        // 엔티티 구조에 맞춰 id 혹은 idxUser를 추출하여 서비스로 전달
         Long folderId = folderService.createFolder(currentUser.getIdxUser(), request.getName());
-        
-        logInfo("API - 폴더 생성 성공 [폴더 ID: {}]", folderId);
-        return ok(folderId); // BaseController의 데이터 포함 성공 응답 구조(ok) 사용
+        logInfo("폴더 생성 [ID: {}]", folderId);
+        return ok(folderId);
     }
 
-    /**
-     * 2. 폴더 목록 조회 API (비동기 데이터 전송용)
-     * 요청: GET /api/folders
-     */
+    // ### List<TbFolder> → List<FolderResponse> 로 변경
+    // ### 엔티티를 API 응답으로 직접 반환하면 두 가지 문제가 생깁니다.
+    // ### 1. 불필요한 필드(연관관계 등)까지 JSON으로 노출될 수 있습니다.
+    // ### 2. JPA 지연로딩(LAZY) 설정 시 직렬화 과정에서 에러가 발생할 수 있습니다.
+    // ### 앞으로 API 응답은 반드시 DTO(Response)로 변환해서 반환합니다.
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TbFolder>>> getFolders() {
-        if (!isLoggedIn()) {
-            return fail("로그인이 필요한 서비스입니다.");
-        }
-
+    public ResponseEntity<ApiResponse<List<FolderResponse>>> getFolders() {
+        if (!isLoggedIn()) return fail("로그인이 필요한 서비스입니다.");
         TbUser currentUser = getCurrentUser();
-        List<TbFolder> folders = folderService.getFolderList(currentUser.getIdxUser());
-        
+        List<FolderResponse> folders = folderService.getFolderList(currentUser.getIdxUser());
         return ok(folders);
     }
 
-    /**
-     * 3. 폴더 수정 API
-     * 요청: PUT /api/folders/{folderId} {"name": "바꿀 폴더명"}
-     */
+    // ### try-catch 제거
+    // ### Service에서 CustomException을 던지면
+    // ### GlobalExceptionHandler가 자동으로 잡아서 fail 응답을 반환합니다.
+    // ### 컨트롤러에서 try-catch를 직접 쓰면 GlobalExceptionHandler가 동작하지 않습니다.
+    // ### 예외 처리는 GlobalExceptionHandler에 맡기고 컨트롤러는 happy path만 작성합니다.
     @PutMapping("/{folderId}")
     public ResponseEntity<ApiResponse<Void>> updateFolder(
-            @PathVariable("folderId") Long folderId,
+            @PathVariable Long folderId,
             @RequestBody FolderRequest request) {
-        
-        if (!isLoggedIn()) {
-            return fail("로그인이 필요한 서비스입니다.");
-        }
-
-        try {
-            folderService.updateFolder(folderId, request.getName());
-            logInfo("API - 폴더 수정 성공 [폴더 ID: {}, 변경된 이름: {}]", folderId, request.getName());
-            return ok(); // BaseController의 데이터 없는 공통 성공 응답 사용
-        } catch (IllegalArgumentException e) {
-            logError("API - 폴더 수정 실패", e);
-            return fail(e.getMessage()); // 에러 발생 시 공통 실패 응답 반환
-        }
+        if (!isLoggedIn()) return fail("로그인이 필요한 서비스입니다.");
+        folderService.updateFolder(folderId, request.getName());
+        logInfo("폴더 수정 [ID: {}]", folderId);
+        return ok();
     }
 
-    /**
-     * 4. 폴더 삭제 API
-     * 요청: DELETE /api/folders/{folderId}
-     */
     @DeleteMapping("/{folderId}")
-    public ResponseEntity<ApiResponse<Void>> deleteFolder(@PathVariable("folderId") Long folderId) {
-        if (!isLoggedIn()) {
-            return fail("로그인이 필요한 Service입니다.");
-        }
-
-        try {
-            folderService.deleteFolder(folderId);
-            logInfo("API - 폴더 삭제 성공 [폴더 ID: {}]", folderId);
-            return ok();
-        } catch (IllegalArgumentException e) {
-            logError("API - 폴더 삭제 실패", e);
-            return fail(e.getMessage());
-        }
-    }
-
-    // JSON 요청 데이터를 바인딩하기 위한 DTO 클래스
-    @lombok.Getter
-    @lombok.Setter
-    public static class FolderRequest {
-        private String name;
+    public ResponseEntity<ApiResponse<Void>> deleteFolder(@PathVariable Long folderId) {
+        if (!isLoggedIn()) return fail("로그인이 필요한 서비스입니다.");
+        folderService.deleteFolder(folderId);
+        logInfo("폴더 삭제 [ID: {}]", folderId);
+        return ok();
     }
 }
-

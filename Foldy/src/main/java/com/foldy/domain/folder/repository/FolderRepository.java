@@ -7,7 +7,10 @@ import java.util.List;
 
 @Repository
 public interface FolderRepository extends JpaRepository<TbFolder, Long> {
-    
-    // findBy + User(연관필드명) + IdxUser(TbUser의실제변수명)
-    List<TbFolder> findByUserIdxUser(Long idxUser);
+
+    // ### OrderByCreateDateDesc 추가
+    // ### 폴더 목록을 최신 생성순으로 정렬해서 반환합니다.
+    // ### Service에서 별도로 정렬 로직을 작성할 필요 없이
+    // ### 메서드 이름만으로 정렬 조건을 지정할 수 있습니다.
+    List<TbFolder> findByUserIdxUserOrderByCreateDateDesc(Long idxUser);
 }
