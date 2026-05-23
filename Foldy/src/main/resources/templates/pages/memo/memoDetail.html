@@ -1,515 +1,143 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/head :: head('메모')}">
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css"
+	rel="stylesheet">
+<style>
+/* ### 기존 제거하고 이걸로 교체 */
+.readonly-mode .ql-editor.ql-blank::before {
+    display: none !important;
+}
+</style>
 </head>
 <body>
-<style>
-    body {
-        background: #fff;
-        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-    }
-    .onenote-page { height: 100vh; }
+	<div class="d-flex flex-column" style="height: 100vh;">
 
-    /* 상단 섹션 바 */
-    .section-bar {
-        background: #7719AA;
-        color: white;
-        padding: 8px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 13px;
-        font-weight: 600;
-    }
-    .section-bar .app-icon {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 24px; height: 24px;
-        background: rgba(255,255,255,0.18);
-        border-radius: 4px;
-        font-size: 12px;
-    }
-    .section-bar .section-tab {
-        background: rgba(255,255,255,0.15);
-        padding: 4px 14px;
-        border-radius: 4px 4px 0 0;
-        font-size: 12px;
-        margin-left: auto;
-        align-self: flex-end;
-        position: relative;
-        top: 8px;
-    }
+		<!--헤더-->
+		<div class="d-flex flex-column-auto bg-white border-bottom px-4 py-3">
+			<div class="d-flex justify-content-between align-items-center w-100">
+				<button class="btn btn-sm btn-icon btn-light"
+					onclick="history.back()">
+					<i class="ki-duotone ki-arrow-left fs-3"> <span class="path1"></span>
+						<span class="path2"></span>
+					</i>
+				</button>
+				<span class="fw-bold fs-5 text-gray-900" id="headerTitle">메모</span>
+				<div class="d-flex gap-2">
+					<button id="btnSave" class="btn btn-sm btn-primary d-none"
+						onclick="saveMemo()">저장</button>
+					<button id="btnEdit" class="btn btn-sm btn-light d-none"
+						onclick="enableEdit()">
+						<i class="ki-duotone ki-pencil fs-5"> <span class="path1"></span>
+							<span class="path2"></span>
+						</i>
+					</button>
+					<button id="btnDelete"
+						class="btn btn-sm btn-icon btn-light-danger d-none"
+						onclick="deleteMemo()">
+						<i class="ki-duotone ki-trash fs-5"> <span class="path1"></span>
+							<span class="path2"></span> <span class="path3"></span> <span
+							class="path4"></span> <span class="path5"></span>
+						</i>
+					</button>
+				</div>
+			</div>
+		</div>
 
-    /* 리본 */
-    .ribbon {
-        background: #FAFAFC;
-        border-bottom: 1px solid #E5E5EC;
-        padding: 8px 16px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .ribbon .back-btn {
-        background: none; border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        color: #444;
-        font-size: 12px;
-        font-weight: 500;
-        display: inline-flex; align-items: center; gap: 4px;
-    }
-    .ribbon .back-btn:hover { background: #F0E8F7; color: #7719AA; }
-    .ribbon .spacer { flex: 1; }
-    .ribbon .ribbon-btn {
-        background: none; border: 1px solid transparent;
-        padding: 5px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #444;
-        display: inline-flex; align-items: center; gap: 5px;
-    }
-    .ribbon .ribbon-btn:hover { background: #F0E8F7; color: #7719AA; border-color: #E5DEFB; }
-    .ribbon .ribbon-btn.danger:hover { background: #FDECEC; color: #C9302C; border-color: #F5C2C2; }
-    .ribbon .btn-save {
-        background: #7719AA; color: white;
-        border: none;
-        padding: 6px 16px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    .ribbon .btn-save:hover { background: #631489; color: white; }
-    .ribbon .status-text {
-        font-size: 11px;
-        color: #999;
-        font-style: italic;
-        margin-right: 8px;
-    }
+		<!--콘텐츠-->
+		<div id="scrollContainer" class="flex-grow-1"
+			style="overflow-y: auto;">
+			<div class="p-4 w-100 d-flex flex-column gap-4">
 
-    /* 페이지 본문 */
-    .page-paper {
-        background: #fff;
-        padding: 36px 48px 80px;
-        max-width: 920px;
-        margin: 0 auto;
-    }
-    .memo-title-input {
-        background: transparent;
-        border: none;
-        outline: none;
-        font-size: 30px;
-        font-weight: 700;
-        color: #1F1F2E;
-        width: 100%;
-        padding: 4px 0;
-        letter-spacing: -0.5px;
-        box-shadow: none !important;
-        border-bottom: 1.5px solid transparent;
-    }
-    .memo-title-input::placeholder { color: #C8C8D4; font-weight: 600; }
-    .memo-title-input:not([readonly]):focus { border-bottom-color: #7719AA; }
-    .memo-title-input[readonly] { border-bottom: none; cursor: default; }
+				<!--제목-->
+				<input type="text" id="memoTitle"
+					class="form-control form-control-lg border-0 px-0 fw-bold fs-3"
+					placeholder="제목을 입력하세요"
+					style="background: transparent; box-shadow: none;" readonly>
 
-    /* 메타 */
-    .meta-bar {
-        margin-top: 10px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid #EFEFF4;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        flex-wrap: wrap;
-    }
-    .meta-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: #777;
-    }
-    .meta-item svg { color: #999; }
-    .tag-list {
-        display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
-    }
-    .tag-chip {
-        font-size: 11px;
-        padding: 3px 9px;
-        border-radius: 3px;
-        font-weight: 600;
-        border: 1px solid;
-        line-height: 1.4;
-    }
-    .btn-add-tag {
-        font-size: 11px;
-        padding: 3px 9px;
-        border-radius: 3px;
-        border: 1px dashed #7719AA;
-        background: transparent;
-        color: #7719AA;
-        font-weight: 600;
-        line-height: 1.4;
-    }
-    .btn-add-tag:hover { background: #F0E8F7; }
+				<!--메타 정보-->
+				<div class="d-flex flex-column gap-2">
+					<div class="d-flex align-items-center gap-2">
+						<i class="ki-duotone ki-calendar fs-5 text-gray-400"> <span
+							class="path1"></span> <span class="path2"></span>
+						</i> <span id="memoDateText" class="fs-7 text-gray-400"></span>
+					</div>
+					<div class="d-flex align-items-center gap-2 flex-wrap">
+						<i class="ki-duotone ki-tag fs-5 text-gray-400"> <span
+							class="path1"></span> <span class="path2"></span>
+						</i>
+						<div id="tagContainer" class="d-flex gap-2 flex-wrap"></div>
+						<button id="btnAddTag"
+							class="btn btn-sm btn-light rounded-pill d-none"
+							onclick="openTagModal()">
+							<i class="ki-duotone ki-plus fs-6"> <span class="path1"></span>
+							</i> 태그 추가
+						</button>
+					</div>
+				</div>
 
-    /* Quill 에디터 — 노션 인플레이스 느낌 */
-    .quill-wrapper { margin-top: 24px; }
-    .ql-toolbar.ql-snow {
-        border: 1px solid #E5E5EC !important;
-        background: #FAFAFC;
-        border-radius: 4px 4px 0 0;
-        padding: 6px 10px !important;
-        transition: opacity 0.15s, height 0.15s;
-    }
-    .ql-container.ql-snow {
-        border: 1px solid #E5E5EC !important;
-        border-top: none !important;
-        border-radius: 0 0 4px 4px;
-        background: white;
-        font-size: 15px;
-        font-family: inherit;
-        min-height: 320px;
-    }
-    .ql-editor {
-        padding: 22px !important;
-        line-height: 1.85;
-        color: #2A2A3A;
-    }
-    .ql-editor img {
-        max-width: 100%;
-        cursor: pointer;
-        border-radius: 4px;
-    }
-    .ql-editor img.img-selected {
-        outline: 2px solid #7719AA;
-        outline-offset: 2px;
-    }
-    .img-resize-handle {
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        background: #7719AA;
-        border: 2px solid white;
-        border-radius: 50%;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-        z-index: 1000;
-        pointer-events: auto;
-    }
-    .img-resize-handle.nw { cursor: nwse-resize; }
-    .img-resize-handle.ne { cursor: nesw-resize; }
-    .img-resize-handle.sw { cursor: nesw-resize; }
-    .img-resize-handle.se { cursor: nwse-resize; }
-    .img-move-hint {
-        position: absolute;
-        background: #7719AA;
-        color: white;
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 4px;
-        white-space: nowrap;
-        z-index: 1001;
-        pointer-events: none;
-    }
-    /* 드래그 중 3분할 영역 */
-    .img-drop-zone {
-        position: fixed;
-        pointer-events: none;
-        z-index: 99997;
-        background: rgba(119, 25, 170, 0.04);
-        border: 1px dashed rgba(119, 25, 170, 0.25);
-        transition: background 0.1s;
-    }
-    .img-drop-zone.active {
-        background: rgba(119, 25, 170, 0.15);
-        border-color: #7719AA;
-    }
-    .img-drop-zone-label {
-        position: absolute;
-        top: 8px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 11px;
-        font-weight: 700;
-        color: #7719AA;
-        background: white;
-        padding: 2px 8px;
-        border-radius: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .ql-editor .ql-align-center { text-align: center; }
-    .ql-editor .ql-align-right { text-align: right; }
-    .ql-editor .ql-align-left { text-align: left; }
+				<div class="separator"></div>
 
-    /* 읽기 모드 — 툴바 숨김 + 테두리 없음 */
-    .quill-wrapper.readonly .ql-toolbar.ql-snow {
-        display: none !important;
-    }
-    .quill-wrapper.readonly .ql-container.ql-snow {
-        border: none !important;
-        border-radius: 0;
-    }
-    .quill-wrapper.readonly .ql-editor {
-        padding: 4px 0 !important;
-        background: transparent;
-    }
-    .quill-wrapper.readonly .ql-editor.ql-blank::before { display: none; }
+				<!--Quill 에디터-->
+				<div id="quillWrapper">
+					<div id="quillEditor" style="min-height: 300px;"></div>
+				</div>
 
-    /* 커스텀 사진 추가 버튼 (툴바 안) */
-    .ql-toolbar .ql-custom-image {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: #7719AA !important;
-        color: white !important;
-        border-radius: 4px !important;
-        padding: 3px 10px !important;
-        font-size: 11.5px !important;
-        font-weight: 600 !important;
-        width: auto !important;
-        height: auto !important;
-        margin-left: 6px;
-    }
-    .ql-toolbar .ql-custom-image:hover { background: #631489 !important; }
-    .ql-toolbar .ql-custom-image::before {
-        content: '📷 사진 추가';
-    }
+				<!--이미지 업로드-->
+				<input type="file" id="hiddenImageInput" accept="image/*"
+					class="d-none">
 
-    /* 태그 모달 */
-    .modal-content {
-        border: none;
-        border-radius: 6px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    }
-    .modal-header {
-        background: #7719AA; color: white;
-        border-bottom: none;
-        padding: 12px 18px;
-        border-radius: 6px 6px 0 0;
-    }
-    .modal-title { color: white; font-size: 14px; font-weight: 600; }
-    .modal-header .btn-close { filter: brightness(0) invert(1); opacity: 0.7; }
-    .modal-body { padding: 18px; }
-    .modal-footer { border-top: 1px solid #EFEFF4; padding: 10px 18px; }
-    .modal-footer .btn-primary {
-        background: #7719AA; border: none;
-        font-weight: 600; font-size: 12.5px;
-        padding: 6px 18px; border-radius: 4px;
-    }
-    .modal-footer .btn-primary:hover { background: #631489; }
-    .modal-footer .btn-light {
-        background: #F0F0F4; border: none;
-        color: #555; font-weight: 500; font-size: 12.5px;
-        padding: 6px 16px; border-radius: 4px;
-    }
-    .tag-modal-btn {
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 12px;
-        border-radius: 3px;
-        border: 1px solid;
-        transition: all 0.12s;
-        cursor: pointer;
-    }
-</style>
+			</div>
+		</div>
 
-<div class="onenote-page d-flex flex-column">
+	</div>
 
-    <!--상단 섹션 바-->
-    <div class="section-bar">
-        <span class="app-icon">N</span>
-        <span>Foldy</span>
-        <span class="section-tab" id="sectionTabName">메모</span>
-    </div>
+	<!--태그 선택 모달-->
+	<div class="modal fade" id="tagModal" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title fw-bold">태그 선택</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<div id="tagModalList" class="d-flex flex-wrap gap-2">
+						<span style="color: #888; font-size: 12px;">불러오는 중...</span>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+					<button type="button" class="btn btn-primary"
+						onclick="applyTagSelection()">적용</button>
+				</div>
+			</div>
+		</div>
+	</div>
 
-    <!--리본-->
-    <div class="ribbon">
-        <button class="back-btn" onclick="history.back()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            뒤로
-        </button>
-        <div class="spacer"></div>
-        <span id="statusText" class="status-text d-none">편집 중...</span>
-        <button id="btnSave" class="btn-save d-none" onclick="saveMemo()">💾 저장</button>
-        <button id="btnEdit" class="ribbon-btn d-none" onclick="enableEdit()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <path d="M16.5 3.5L20.5 7.5L7 21H3V17L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-            편집
-        </button>
-        <button id="btnDelete" class="ribbon-btn danger d-none" onclick="deleteMemo()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <path d="M3 6H21M8 6V4C8 3 9 2 10 2H14C15 2 16 3 16 4V6M19 6V20C19 21 18 22 17 22H7C6 22 5 21 5 20V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            삭제
-        </button>
-    </div>
+	<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+	<script th:src="@{/plugins/global/plugins.bundle.js}"></script>
+	<script th:src="@{/js/scripts.bundle.js}"></script>
 
-    <!--본문-->
-    <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
-        <div class="page-paper">
-
-            <input type="text" id="memoTitle" class="memo-title-input"
-                   placeholder="제목 없는 페이지" readonly>
-
-            <div class="meta-bar">
-                <span class="meta-item">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
-                        <path d="M3 9H21M8 3V7M16 3V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <span id="memoDateText"></span>
-                </span>
-                <div class="tag-list">
-                    <span class="meta-item">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                            <path d="M20.59 13.41L13.42 20.58A2 2 0 0 1 10.59 20.58L2 12V2H12L20.59 10.59A2 2 0 0 1 20.59 13.41Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <circle cx="7" cy="7" r="1.2" fill="currentColor"/>
-                        </svg>
-                    </span>
-                    <div id="tagContainer" class="d-flex gap-2 flex-wrap"></div>
-                    <button id="btnAddTag" class="btn-add-tag d-none" onclick="openTagModal()">+ 태그</button>
-                </div>
-            </div>
-
-            <!--Quill 에디터 (상시 노출, readOnly 토글)-->
-            <div id="quillWrapper" class="quill-wrapper">
-                <div id="quillEditor"></div>
-            </div>
-
-            <!--숨겨진 파일 input (사진 추가용)-->
-            <input type="file" id="hiddenImageInput" accept="image/*" class="d-none">
-
-        </div>
-    </div>
-
-</div>
-
-<!--태그 선택 모달-->
-<div class="modal fade" id="tagModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">태그 선택</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="tagModalList" class="d-flex flex-wrap gap-2">
-                    <span style="color:#888;font-size:12px;">불러오는 중...</span>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
-                <button type="button" class="btn btn-primary" onclick="applyTagSelection()">적용</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-<script th:src="@{/plugins/global/plugins.bundle.js}"></script>
-<script th:src="@{/js/scripts.bundle.js}"></script>
-
-<script>
-const params = new URLSearchParams(location.search);
-let memoId = params.get('id');
-let folderId = params.get('folderId');
+	<script>
+const params     = new URLSearchParams(location.search);
+let memoId       = params.get('id');
+let folderId     = params.get('folderId');
 const folderName = params.get('folderName');
 
-if (folderName) document.getElementById('sectionTabName').textContent = folderName;
-
-let isEditMode = false;
-let quill = null;
-let allTags = [];
-let selectedTagIds = [];
+let isEditMode       = false;
+let quill            = null;
+let allTags          = [];
+let selectedTagIds   = [];
 let tempSelectedTagIds = [];
 
 // ─────────────────────────────────────────
-// 인증
+// Quill 초기화
 // ─────────────────────────────────────────
-
-function getToken() {
-    const cookies = document.cookie.split(';');
-    for (let c of cookies) {
-        const [key, val] = c.trim().split('=');
-        if (key === 'token') return val;
-    }
-    return null;
-}
-
-function authHeaders(json = true) {
-    const token = getToken();
-    const headers = {};
-    if (json) headers['Content-Type'] = 'application/json';
-    if (token) headers.Authorization = `Bearer ${token}`;
-    return headers;
-}
-
-async function requestJson(url, options = {}, asJson = true) {
-    const response = await fetch(url, {
-        ...options,
-        credentials: 'include',
-        headers: { ...authHeaders(asJson), ...(options.headers || {}) }
-    });
-    if (response.status === 401 || response.status === 403) {
-        location.href = '/auth/login';
-        throw new Error('인증 필요');
-    }
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result?.result) {
-        throw new Error(result?.message || '요청 처리 중 오류가 발생했습니다.');
-    }
-    return result.data;
-}
-
-function showError(msg) {
-    Swal.fire({
-        text: msg, icon: "error", buttonsStyling: false,
-        confirmButtonText: "확인",
-        customClass: { confirmButton: "btn btn-danger" }
-    });
-}
-
-function showInfo(msg) {
-    Swal.fire({
-        text: msg, icon: "success", buttonsStyling: false,
-        confirmButtonText: "확인",
-        customClass: { confirmButton: "btn btn-primary" },
-        timer: 1500
-    });
-}
-
-function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function formatDate(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (isNaN(d)) return '';
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mi = String(d.getMinutes()).padStart(2, '0');
-    return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
-}
-
-// ─────────────────────────────────────────
-// Quill 초기화 (한 번만)
-// ─────────────────────────────────────────
-
 function initQuill() {
     if (quill) return;
-
     quill = new Quill('#quillEditor', {
         theme: 'snow',
-        placeholder: '이 곳에 내용을 입력하세요. 텍스트, 사진, 목록 등을 자유롭게 작성할 수 있어요...',
+        placeholder: '내용을 입력하세요...',
         modules: {
             toolbar: {
                 container: [
@@ -520,27 +148,18 @@ function initQuill() {
                     ['clean'],
                     ['custom-image']
                 ],
-                handlers: {
-                    'custom-image': handleImageInsert
-                }
+                handlers: { 'custom-image': handleImageInsert }
             }
         }
     });
-
-    setupImageManipulation();
 }
 
-// 툴바의 사진 추가 버튼 핸들러 — 파일 선택 → base64 삽입
 function handleImageInsert() {
     const input = document.getElementById('hiddenImageInput');
     input.value = '';
     input.onchange = () => {
         const file = input.files[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/')) {
-            showError("이미지 파일만 추가할 수 있어요.");
-            return;
-        }
+        if (!file || !file.type.startsWith('image/')) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             const range = quill.getSelection(true);
@@ -555,32 +174,38 @@ function handleImageInsert() {
 // ─────────────────────────────────────────
 // 초기 진입
 // ─────────────────────────────────────────
-
 document.addEventListener('DOMContentLoaded', async () => {
     initQuill();
     if (memoId) {
         await loadMemo();
     } else {
-        if (!folderId) {
-            showError('폴더 정보가 없습니다.');
-            return;
-        }
+        if (!folderId) { showError('폴더 정보가 없습니다.'); return; }
         enterCreateMode();
     }
 });
 
 async function loadMemo() {
     try {
-        const memo = await requestJson(`/api/memo/${memoId}`);
+        const res = await fetch(`/api/memo/${memoId}`, { credentials: 'include' });
+        if (res.status === 401) { location.href = '/auth/login'; return; }
+        const json = await res.json();
+        if (!json?.result) throw new Error(json?.message);
+        const memo = json.data;
+
         folderId = memo.idxFolder;
         selectedTagIds = (memo.tags || []).map(t => t.idxTag);
 
         document.getElementById('memoTitle').value = memo.title || '';
         document.getElementById('memoDateText').textContent = formatDate(memo.updateDate);
+        document.getElementById('headerTitle').textContent = folderName || '메모';
         quill.root.innerHTML = memo.content || '';
         renderTags(memo.tags || []);
 
-        setReadOnly(true);
+        // ### setReadOnly를 마지막에, setTimeout으로 DOM 렌더링 완료 후 실행
+        // ### Quill이 내용을 채운 직후 바로 호출하면 ql-blank 클래스가
+        // ### 아직 제거되지 않은 상태라 placeholder가 보일 수 있습니다.
+        setTimeout(() => setReadOnly(true), 50);
+
     } catch (e) {
         showError(e.message);
     }
@@ -588,7 +213,7 @@ async function loadMemo() {
 
 function enterCreateMode() {
     document.getElementById('memoDateText').textContent = formatDate(new Date().toISOString());
-    document.getElementById('memoTitle').value = '';
+    document.getElementById('headerTitle').textContent = folderName || '새 메모';
     quill.root.innerHTML = '';
     selectedTagIds = [];
     renderTags([]);
@@ -598,40 +223,35 @@ function enterCreateMode() {
 // ─────────────────────────────────────────
 // 모드 전환
 // ─────────────────────────────────────────
-
 function setReadOnly(readonly) {
     isEditMode = !readonly;
-    if (readonly && typeof deselectImage === 'function') deselectImage();
-
-    const wrapper = document.getElementById('quillWrapper');
-    const title = document.getElementById('memoTitle');
-    const btnSave = document.getElementById('btnSave');
-    const btnEdit = document.getElementById('btnEdit');
-    const btnDelete = document.getElementById('btnDelete');
-    const btnAddTag = document.getElementById('btnAddTag');
-    const status = document.getElementById('statusText');
-
     quill.enable(!readonly);
 
-    if (readonly) {
-        wrapper.classList.add('readonly');
-        title.setAttribute('readonly', true);
-        btnSave.classList.add('d-none');
-        btnAddTag.classList.add('d-none');
-        status.classList.add('d-none');
-        if (memoId) {
-            btnEdit.classList.remove('d-none');
-            btnDelete.classList.remove('d-none');
-        }
+    document.getElementById('memoTitle')[readonly ? 'setAttribute' : 'removeAttribute']('readonly', true);
+    document.getElementById('btnSave').classList.toggle('d-none', readonly);
+    document.getElementById('btnAddTag').classList.toggle('d-none', readonly);
+
+    if (readonly && memoId) {
+        document.getElementById('btnEdit').classList.remove('d-none');
+        document.getElementById('btnDelete').classList.remove('d-none');
     } else {
-        wrapper.classList.remove('readonly');
-        title.removeAttribute('readonly');
-        btnSave.classList.remove('d-none');
-        btnAddTag.classList.remove('d-none');
-        status.classList.remove('d-none');
-        btnEdit.classList.add('d-none');
-        btnDelete.classList.add('d-none');
+        document.getElementById('btnEdit').classList.add('d-none');
+        document.getElementById('btnDelete').classList.add('d-none');
     }
+
+    const toolbar   = document.querySelector('.ql-toolbar');
+    const container = document.querySelector('.ql-container');
+    if (toolbar)   toolbar.style.display = readonly ? 'none' : '';
+    if (container) container.style.border = readonly ? 'none' : '';
+
+    // ### placeholder 숨기기/보이기
+    // ### 읽기 모드일 때 .ql-blank::before 가 내용 위에 겹쳐 보이는 문제 해결
+    const wrapper = document.getElementById('quillWrapper');
+	if (readonly) {
+	    wrapper.classList.add('readonly-mode');
+	} else {
+	    wrapper.classList.remove('readonly-mode');
+	}
 }
 
 function enableEdit() {
@@ -642,45 +262,51 @@ function enableEdit() {
 // ─────────────────────────────────────────
 // 저장 / 삭제
 // ─────────────────────────────────────────
-
 async function saveMemo() {
-    const title = document.getElementById('memoTitle').value.trim();
+    const title   = document.getElementById('memoTitle').value.trim();
     const content = quill.root.innerHTML;
 
-    if (!title) {
-        showError("제목을 입력해주세요.");
-        return;
-    }
+    if (!title) { showError("제목을 입력해주세요."); return; }
 
     try {
-        let saved;
+        let res, json;
         if (memoId) {
-            saved = await requestJson(`/api/memo/${memoId}`, {
-                method: 'PUT',
+            res  = await fetch(`/api/memo/${memoId}`, {
+                method: 'PUT', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, content, tagIds: selectedTagIds })
             });
         } else {
-            saved = await requestJson('/api/memo', {
-                method: 'POST',
+            res = await fetch('/api/memo', {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    idxFolder: Number(folderId),
-                    title, content, tagIds: selectedTagIds
+                    idxFolder: Number(folderId), title, content, tagIds: selectedTagIds
                 })
             });
-            memoId = saved.idxMemo;
-            const newUrl = `/memo/detail?id=${memoId}` +
-                (folderName ? `&folderName=${encodeURIComponent(folderName)}` : '');
-            history.replaceState(null, '', newUrl);
         }
+        if (res.status === 401) { location.href = '/auth/login'; return; }
+        json = await res.json();
+        if (!json?.result) throw new Error(json?.message);
 
+        const saved = json.data;
+        memoId = saved.idxMemo;
         document.getElementById('memoTitle').value = saved.title || '';
         document.getElementById('memoDateText').textContent = formatDate(saved.updateDate);
         quill.root.innerHTML = saved.content || '';
         selectedTagIds = (saved.tags || []).map(t => t.idxTag);
         renderTags(saved.tags || []);
 
+        history.replaceState(null, '', `/memo/detail?id=${memoId}` +
+            (folderName ? `&folderName=${encodeURIComponent(folderName)}` : ''));
+
         setReadOnly(true);
-        showInfo("저장되었습니다.");
+        Swal.fire({
+            text: "저장되었습니다.", icon: "success",
+            buttonsStyling: false, confirmButtonText: "확인",
+            timer: 1500,
+            customClass: { confirmButton: "btn btn-primary" }
+        });
     } catch (e) {
         showError(e.message);
     }
@@ -689,20 +315,19 @@ async function saveMemo() {
 function deleteMemo() {
     if (!memoId) return;
     Swal.fire({
-        text: "메모를 삭제하시겠습니까?",
-        icon: "warning", buttonsStyling: false,
-        showCancelButton: true,
+        text: "메모를 삭제하시겠습니까?", icon: "warning",
+        buttonsStyling: false, showCancelButton: true,
         confirmButtonText: "삭제", cancelButtonText: "취소",
         customClass: { confirmButton: "btn btn-danger", cancelButton: "btn btn-light" }
     }).then(async result => {
         if (!result.isConfirmed) return;
-        try {
-            await requestJson(`/api/memo/${memoId}`, { method: 'DELETE' });
-            const listUrl = `/memo/list?folderId=${folderId}` +
+        const res = await fetch(`/api/memo/${memoId}`, {
+            method: 'DELETE', credentials: 'include'
+        });
+        const json = await res.json();
+        if (json?.result) {
+            location.href = `/memo/list?folderId=${folderId}` +
                 (folderName ? `&folderName=${encodeURIComponent(folderName)}` : '');
-            location.href = listUrl;
-        } catch (e) {
-            showError(e.message);
         }
     });
 }
@@ -710,11 +335,12 @@ function deleteMemo() {
 // ─────────────────────────────────────────
 // 태그
 // ─────────────────────────────────────────
-
 async function openTagModal() {
     try {
         if (!allTags.length) {
-            allTags = await requestJson('/api/tags') || [];
+            const res  = await fetch('/api/tags', { credentials: 'include' });
+            const json = await res.json();
+            allTags = json.data || [];
         }
         tempSelectedTagIds = [...selectedTagIds];
         renderTagModal();
@@ -732,23 +358,16 @@ function renderTagModal() {
         return;
     }
     allTags.forEach(tag => {
-        const tagId = tag.idxTag ?? tag.id;
-        const name = tag.name;
-        const color = tag.color || '#7719AA';
+        const tagId     = tag.idxTag ?? tag.id;
+        const color     = tag.color || '#4ECDC4';
         const isSelected = tempSelectedTagIds.includes(tagId);
-
         const btn = document.createElement('button');
-        btn.className = 'tag-modal-btn';
-        if (isSelected) {
-            btn.style.background = color;
-            btn.style.color = '#fff';
-            btn.style.borderColor = color;
-        } else {
-            btn.style.background = `${color}0F`;
-            btn.style.color = color;
-            btn.style.borderColor = color;
-        }
-        btn.textContent = name;
+        btn.className = 'btn btn-sm rounded-pill';
+        btn.style.borderColor = color;
+        btn.style.color = isSelected ? '#fff' : color;
+        btn.style.background = isSelected ? color : `${color}20`;
+        btn.style.border = `1px solid ${color}`;
+        btn.textContent = tag.name;
         btn.onclick = () => {
             if (tempSelectedTagIds.includes(tagId)) {
                 tempSelectedTagIds = tempSelectedTagIds.filter(x => x !== tagId);
@@ -765,8 +384,7 @@ function applyTagSelection() {
     selectedTagIds = [...tempSelectedTagIds];
     const tagInfos = selectedTagIds
         .map(id => allTags.find(t => (t.idxTag ?? t.id) === id))
-        .filter(Boolean)
-        .map(t => ({ idxTag: t.idxTag ?? t.id, name: t.name, color: t.color }));
+        .filter(Boolean);
     renderTags(tagInfos);
     bootstrap.Modal.getInstance(document.getElementById('tagModal')).hide();
 }
@@ -775,378 +393,33 @@ function renderTags(tags) {
     const container = document.getElementById('tagContainer');
     container.innerHTML = '';
     tags.forEach(t => {
-        const color = t.color || '#7719AA';
-        const span = document.createElement('span');
-        span.className = 'tag-chip';
-        span.style.borderColor = color;
-        span.style.color = color;
-        span.style.background = `${color}0F`;
+        const color = t.color || '#4ECDC4';
+        const span  = document.createElement('span');
+        span.className = 'badge badge-sm rounded-pill px-3 py-2 fs-8';
+        span.style.background   = `${color}20`;
+        span.style.color        = color;
+        span.style.border       = `1px solid ${color}`;
         span.textContent = t.name;
         container.appendChild(span);
     });
 }
 
 // ─────────────────────────────────────────
-// 이미지 선택 + 리사이즈 + 위치이동 + 좌우정렬
+// 유틸
 // ─────────────────────────────────────────
+function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 
-let selectedImg = null;
-let resizeHandles = [];
-let moveHint = null;
-let moveState = null;
-let ghostEl = null;
-let dropIndicator = null;
-let dropZones = [];
-let currentZone = null;
-
-function setupImageManipulation() {
-    const editor = quill.root;
-
-    editor.addEventListener('click', (e) => {
-        if (!isEditMode) { deselectImage(); return; }
-        if (e.target.tagName === 'IMG') {
-            e.stopPropagation();
-            selectImage(e.target);
-        } else {
-            deselectImage();
-        }
+function showError(msg) {
+    Swal.fire({
+        text: msg, icon: "error", buttonsStyling: false,
+        confirmButtonText: "확인",
+        customClass: { confirmButton: "btn btn-danger" }
     });
-
-    document.addEventListener('click', (e) => {
-        if (e.target.tagName === 'IMG') return;
-        if (e.target.classList && e.target.classList.contains('img-resize-handle')) return;
-        deselectImage();
-    });
-
-    window.addEventListener('scroll', positionHandles, true);
-    window.addEventListener('resize', positionHandles);
-
-    // 브라우저 기본 drag 방지 — 커스텀 mousedown 드래그로 처리
-    editor.addEventListener('dragstart', (e) => {
-        if (e.target.tagName === 'IMG') e.preventDefault();
-    });
-
-    editor.addEventListener('mousedown', onImageDragStart);
-}
-
-function selectImage(img) {
-    deselectImage();
-    selectedImg = img;
-    img.classList.add('img-selected');
-    createHandles();
-    showMoveHint();
-}
-
-function deselectImage() {
-    if (selectedImg) selectedImg.classList.remove('img-selected');
-    selectedImg = null;
-    resizeHandles.forEach(h => h.remove());
-    resizeHandles = [];
-    if (moveHint) { moveHint.remove(); moveHint = null; }
-}
-
-function createHandles() {
-    const corners = ['nw', 'ne', 'sw', 'se'];
-    corners.forEach(corner => {
-        const h = document.createElement('div');
-        h.className = 'img-resize-handle ' + corner;
-        h.dataset.corner = corner;
-        document.body.appendChild(h);
-        resizeHandles.push(h);
-
-        h.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            startResize(corner, e);
-        });
-    });
-    positionHandles();
-}
-
-function positionHandles() {
-    if (!selectedImg) return;
-    const r = selectedImg.getBoundingClientRect();
-    const sx = window.scrollX, sy = window.scrollY;
-    const positions = {
-        nw: { x: r.left + sx - 6, y: r.top + sy - 6 },
-        ne: { x: r.right + sx - 6, y: r.top + sy - 6 },
-        sw: { x: r.left + sx - 6, y: r.bottom + sy - 6 },
-        se: { x: r.right + sx - 6, y: r.bottom + sy - 6 }
-    };
-    resizeHandles.forEach(h => {
-        const p = positions[h.dataset.corner];
-        h.style.left = p.x + 'px';
-        h.style.top = p.y + 'px';
-    });
-    if (moveHint) {
-        moveHint.style.left = (r.left + sx) + 'px';
-        moveHint.style.top = (r.top + sy - 28) + 'px';
-    }
-}
-
-function showMoveHint() {
-    moveHint = document.createElement('div');
-    moveHint.className = 'img-move-hint';
-    moveHint.textContent = '🖱 드래그=위치/좌우정렬 · 모서리 핸들=크기조절';
-    document.body.appendChild(moveHint);
-    positionHandles();
-}
-
-function startResize(corner, startEvent) {
-    if (!selectedImg) return;
-    const img = selectedImg;
-    const startX = startEvent.clientX;
-    const startW = img.offsetWidth;
-    const startH = img.offsetHeight;
-    const ratio = startW / startH;
-    const isLeft = corner === 'nw' || corner === 'sw';
-
-    function onMove(e) {
-        const dx = e.clientX - startX;
-        let newW = isLeft ? (startW - dx) : (startW + dx);
-        newW = Math.max(60, Math.min(newW, quill.root.offsetWidth - 20));
-        const newH = newW / ratio;
-        img.setAttribute('width', newW);
-        img.style.width = newW + 'px';
-        img.style.height = newH + 'px';
-        positionHandles();
-    }
-    function onUp() {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-}
-
-// 이미지 본체 드래그 = 위치 이동 + 좌우 정렬
-function onImageDragStart(e) {
-    if (!isEditMode) return;
-    if (e.target.tagName !== 'IMG') return;
-
-    const img = e.target;
-    const blot = Quill.find(img);
-    if (!blot) return;
-    const originalIndex = quill.getIndex(blot);
-
-    moveState = {
-        img: img,
-        src: img.getAttribute('src'),
-        widthAttr: img.getAttribute('width'),
-        widthStyle: img.style.width,
-        heightStyle: img.style.height,
-        originalIndex: originalIndex,
-        startX: e.clientX,
-        startY: e.clientY,
-        active: false
-    };
-
-    document.addEventListener('mousemove', onImageDragMove);
-    document.addEventListener('mouseup', onImageDragEnd);
-    e.preventDefault();
-}
-
-function onImageDragMove(e) {
-    if (!moveState) return;
-    const dx = Math.abs(e.clientX - moveState.startX);
-    const dy = Math.abs(e.clientY - moveState.startY);
-
-    if (!moveState.active && (dx > 6 || dy > 6)) {
-        moveState.active = true;
-        deselectImage();
-        createGhost();
-        createDropZones();
-    }
-    if (moveState.active) {
-        ghostEl.style.left = (e.clientX + 12) + 'px';
-        ghostEl.style.top = (e.clientY + 12) + 'px';
-        updateDropIndicator(e.clientX, e.clientY);
-        updateActiveZone(e.clientX);
-    }
-}
-
-function onImageDragEnd(e) {
-    document.removeEventListener('mousemove', onImageDragMove);
-    document.removeEventListener('mouseup', onImageDragEnd);
-
-    if (!moveState) return;
-
-    if (moveState.active) {
-        const dropIndex = getQuillIndexFromPoint(e.clientX, e.clientY);
-        const align = computeAlign(e.clientX);
-
-        if (dropIndex !== null && dropIndex !== moveState.originalIndex) {
-            moveImage(moveState.originalIndex, dropIndex, align);
-        } else {
-            applyAlignToImage(moveState.img, align);
-        }
-
-        if (ghostEl) { ghostEl.remove(); ghostEl = null; }
-        if (dropIndicator) { dropIndicator.remove(); dropIndicator = null; }
-        removeDropZones();
-    }
-    moveState = null;
-}
-
-function createGhost() {
-    ghostEl = document.createElement('img');
-    ghostEl.src = moveState.src;
-    ghostEl.style.cssText = `
-        position: fixed; opacity: 0.6; pointer-events: none;
-        z-index: 99999; max-width: 160px; max-height: 120px;
-        border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-    `;
-    document.body.appendChild(ghostEl);
-}
-
-function updateDropIndicator(x, y) {
-    const range = caretRangeFrom(x, y);
-    if (!range || !quill.root.contains(range.startContainer)) {
-        if (dropIndicator) dropIndicator.style.display = 'none';
-        return;
-    }
-    const rects = range.getClientRects();
-    const rect = rects[0] || range.getBoundingClientRect();
-
-    if (!dropIndicator) {
-        dropIndicator = document.createElement('div');
-        dropIndicator.style.cssText = `
-            position: fixed; width: 3px;
-            background: #7719AA; box-shadow: 0 0 4px #7719AA;
-            pointer-events: none; z-index: 99998;
-        `;
-        document.body.appendChild(dropIndicator);
-    }
-    dropIndicator.style.display = 'block';
-    dropIndicator.style.left = rect.left + 'px';
-    dropIndicator.style.top = rect.top + 'px';
-    dropIndicator.style.height = (rect.height || 20) + 'px';
-}
-
-function caretRangeFrom(x, y) {
-    if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
-    if (document.caretPositionFromPoint) {
-        const pos = document.caretPositionFromPoint(x, y);
-        if (!pos) return null;
-        const r = document.createRange();
-        r.setStart(pos.offsetNode, pos.offset);
-        return r;
-    }
-    return null;
-}
-
-function getQuillIndexFromPoint(x, y) {
-    const range = caretRangeFrom(x, y);
-    if (!range || !quill.root.contains(range.startContainer)) return null;
-    const blot = Quill.find(range.startContainer, true);
-    if (!blot) return null;
-    return quill.getIndex(blot) + range.startOffset;
-}
-
-function createDropZones() {
-    removeDropZones();
-    const rect = quill.root.getBoundingClientRect();
-    const labels = { left: '◀ 왼쪽', center: '■ 가운데', right: '오른쪽 ▶' };
-    ['left', 'center', 'right'].forEach((side, i) => {
-        const el = document.createElement('div');
-        el.className = 'img-drop-zone';
-        el.style.left = (rect.left + (rect.width / 3) * i) + 'px';
-        el.style.top = rect.top + 'px';
-        el.style.width = (rect.width / 3) + 'px';
-        el.style.height = rect.height + 'px';
-
-        const label = document.createElement('div');
-        label.className = 'img-drop-zone-label';
-        label.textContent = labels[side];
-        el.appendChild(label);
-
-        document.body.appendChild(el);
-        dropZones.push({ el, side });
-    });
-}
-
-function removeDropZones() {
-    dropZones.forEach(z => z.el.remove());
-    dropZones = [];
-    currentZone = null;
-}
-
-function updateActiveZone(x) {
-    const rect = quill.root.getBoundingClientRect();
-    const relX = x - rect.left;
-    const width = rect.width;
-    let side;
-    if (relX < width / 3) side = 'left';
-    else if (relX > width * 2 / 3) side = 'right';
-    else side = 'center';
-
-    if (side !== currentZone) {
-        currentZone = side;
-        dropZones.forEach(z => z.el.classList.toggle('active', z.side === side));
-    }
-}
-
-function computeAlign(x) {
-    const rect = quill.root.getBoundingClientRect();
-    const relX = x - rect.left;
-    const width = rect.width;
-    if (relX < width / 3) return false;          // 왼쪽 = 정렬 제거 (기본값)
-    if (relX > width * 2 / 3) return 'right';
-    return 'center';
-}
-
-function applyAlignToImage(img, align) {
-    const blot = Quill.find(img);
-    if (!blot) return;
-    const idx = quill.getIndex(blot);
-    // false / null 둘 다 시도 — Quill 버전 차이 대응
-    quill.formatLine(idx, 1, 'align', align === false ? false : align);
-    // 추가 안전장치: DOM에서 ql-align-* 클래스 직접 제거
-    if (align === false) {
-        const blockEl = img.closest('p, h1, h2, h3, div');
-        if (blockEl) {
-            blockEl.classList.remove('ql-align-center', 'ql-align-right', 'ql-align-justify');
-        }
-    }
-}
-
-function moveImage(fromIndex, toIndex, align) {
-    // moveState는 onImageDragEnd 끝에서 null로 초기화되므로
-    // setTimeout 안에서 안전하게 쓸 수 있도록 로컬 변수에 캡처
-    const src = moveState.src;
-    const widthAttr = moveState.widthAttr;
-    const widthStyle = moveState.widthStyle;
-    const heightStyle = moveState.heightStyle;
-
-    quill.deleteText(fromIndex, 1, Quill.sources.USER);
-
-    let insertAt = toIndex;
-    if (toIndex > fromIndex) insertAt = toIndex - 1;
-
-    quill.insertEmbed(insertAt, 'image', src, Quill.sources.USER);
-    if (align !== undefined) {
-        quill.formatLine(insertAt, 1, 'align', align === false ? false : align);
-    }
-
-    setTimeout(() => {
-        const imgs = quill.root.querySelectorAll('img');
-        for (let i = imgs.length - 1; i >= 0; i--) {
-            if (imgs[i].getAttribute('src') === src) {
-                if (widthAttr) imgs[i].setAttribute('width', widthAttr);
-                if (widthStyle) imgs[i].style.width = widthStyle;
-                if (heightStyle) imgs[i].style.height = heightStyle;
-                if (align === false) {
-                    const blockEl = imgs[i].closest('p, h1, h2, h3, div');
-                    if (blockEl) {
-                        blockEl.classList.remove('ql-align-center', 'ql-align-right', 'ql-align-justify');
-                    }
-                }
-                break;
-            }
-        }
-    }, 0);
-
-    quill.setSelection(insertAt + 1);
 }
 </script>
 

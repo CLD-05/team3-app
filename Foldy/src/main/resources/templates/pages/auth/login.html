@@ -4,19 +4,14 @@
 <body>
 <div class="d-flex flex-column" style="height: 100vh;">
 
-    <!--헤더 없음 (로그인 페이지는 심플하게)-->
-
-    <!--콘텐츠-->
     <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center p-6">
 
-        <!--로고-->
         <div class="d-flex flex-column align-items-center gap-2 mb-10">
             <span style="font-size: 48px;">📝</span>
             <span class="fw-bolder fs-1 text-gray-900">Foldy</span>
             <span class="fs-7 text-gray-500">나만의 공부 노트</span>
         </div>
 
-        <!--로그인 폼-->
         <div class="card shadow-sm w-100" style="max-width: 400px;">
             <div class="card-body p-6">
 
@@ -41,8 +36,7 @@
 
                 <div class="d-flex align-items-center justify-content-center gap-2 mt-5">
                     <span class="fs-7 text-gray-500">계정이 없으신가요?</span>
-                    <a href="/auth/signup"
-                       class="fs-7 fw-semibold text-primary">회원가입</a>
+                    <a href="/auth/signup" class="fs-7 fw-semibold text-primary">회원가입</a>
                 </div>
 
             </div>
@@ -56,17 +50,11 @@
 <script th:src="@{/js/scripts.bundle.js}"></script>
 
 <script>
-function getToken() {
-    const cookies = document.cookie.split(';');
-    for (let c of cookies) {
-        const [key, val] = c.trim().split('=');
-        if (key === 'token') return val;
-    }
-    return null;
-}
-
-// 이미 로그인된 경우 홈으로
-if (getToken()) location.href = '/publishing/home';
+// ### getToken() 제거
+// ### 로그인 여부 확인은 서버(UserController)가 처리합니다.
+// ### HttpOnly 쿠키는 JS에서 document.cookie로 읽을 수 없으므로
+// ### 클라이언트에서 토큰을 직접 확인하는 방식은 동작하지 않습니다.
+// ### 이미 로그인된 상태면 서버에서 /home 으로 redirect 합니다.
 
 function handleLogin() {
     const email = document.getElementById('email').value;
@@ -85,19 +73,18 @@ function handleLogin() {
 
     fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-            email: email, 
-            pass: password 
-        })
+        headers: { 'Content-Type': 'application/json' },
+        // ### credentials: 'include' 추가
+        // ### 서버가 Set-Cookie로 내려주는 HttpOnly 쿠키를
+        // ### 브라우저가 저장하려면 이 옵션이 필요합니다.
+        credentials: 'include',
+        body: JSON.stringify({ email, pass: password })
     })
     .then(res => res.json())
     .then(res => {
-    	if (res.result) {
-    	    location.href = '/home'; 
-    	} else {
+        if (res.result) {
+            location.href = '/home';
+        } else {
             Swal.fire({
                 text: res.message,
                 icon: "error",
@@ -120,7 +107,6 @@ function handleLogin() {
     });
 }
 
-// 엔터키 지원
 document.getElementById('password').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') handleLogin();
 });

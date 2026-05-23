@@ -4,14 +4,11 @@
 <body>
 <div class="d-flex flex-column" style="height: 100vh;">
 
-    <!--헤더-->
     <div th:replace="~{fragments/header :: header-main}"></div>
 
-    <!--콘텐츠-->
     <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
         <div class="p-4 w-100 d-flex flex-column gap-4">
 
-            <!--태그 없을 때-->
             <div id="emptyState"
                  class="d-flex flex-column align-items-center justify-content-center gap-3 py-20 d-none">
                 <span style="font-size: 48px;">🏷️</span>
@@ -19,27 +16,16 @@
                 <span class="fs-7 text-gray-400">아래 버튼을 눌러 태그를 만들어보세요!</span>
             </div>
 
-            <!--태그 목록-->
-            <div id="tagContainer" class="d-flex flex-column gap-3">
-            </div>
+            <div id="tagContainer" class="d-flex flex-column gap-3"></div>
         </div>
     </div>
 
-    <!--네비-->
     <div th:replace="~{fragments/navbar :: navbar-main('tag')}"></div>
 
 </div>
 
-<!--태그 추가 버튼-->
-<button onclick="openAddTag()"
-        class="btn btn-primary btn-icon w-50px h-50px rounded-circle shadow-lg position-fixed"
-        style="bottom: 80px; right: 20px; z-index: 999;">
-    <i class="ki-duotone ki-plus fs-2x">
-        <span class="path1"></span>
-    </i>
-</button>
+<div th:replace="~{fragments/navbar :: btn-add}"></div>
 
-<!--태그 생성/수정 모달-->
 <div class="modal fade" id="tagModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -49,7 +35,6 @@
             </div>
             <div class="modal-body d-flex flex-column gap-4">
 
-                <!--태그 이름-->
                 <div>
                     <label class="form-label fw-semibold text-gray-700">태그 이름</label>
                     <input type="text" id="tagName"
@@ -57,7 +42,6 @@
                            placeholder="태그 이름을 입력하세요">
                 </div>
 
-                <!--색상 선택-->
                 <div>
                     <label class="form-label fw-semibold text-gray-700">색상</label>
                     <div class="d-flex gap-3 flex-wrap mt-2">
@@ -88,7 +72,6 @@
                     </div>
                 </div>
 
-                <!--미리보기-->
                 <div>
                     <label class="form-label fw-semibold text-gray-700">미리보기</label>
                     <div class="mt-1">
@@ -102,10 +85,8 @@
 
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light"
-                        data-bs-dismiss="modal">취소</button>
-                <button type="button" class="btn btn-primary"
-                        onclick="saveTag()">저장</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" onclick="saveTag()">저장</button>
             </div>
         </div>
     </div>
@@ -115,44 +96,42 @@
 <script th:src="@{/js/scripts.bundle.js}"></script>
 
 <script>
-function getToken() {
-    const cookies = document.cookie.split(';');
-    for (let c of cookies) {
-        const [key, val] = c.trim().split('=');
-        if (key === 'token') return val;
-    }
-    return null;
-}
-
-// if (!getToken()) location.href = '/auth/login';
+// ### getToken(), authHeaders() 제거
+// ### HttpOnly 쿠키 방식이라 JS에서 토큰을 읽을 수 없습니다.
+// ### credentials: 'include' 로 쿠키를 자동 전송합니다.
 
 let selectedColor = '#FF6B6B';
 let editTagId = null;
 
-// 태그 이름 입력 시 미리보기 업데이트
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('tagName').addEventListener('input', function() {
-        const preview = document.getElementById('tagPreview');
-        preview.textContent = this.value || '태그 이름';
+//DOMContentLoaded 안에 추가
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('tagName').addEventListener('input', function () {
+        document.getElementById('tagPreview').textContent = this.value || '태그 이름';
     });
+
+    // ### fabBtn 클릭 시 태그 추가 모달 열기
+    document.getElementById('fabBtn')?.addEventListener('click', openAddTag);
+
     loadTags();
 });
 
-function authHeaders() {
-    const token = getToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    return headers;
-}
-
+// ### requestJson — credentials: 'include' 로 변경
+// ### Authorization 헤더 대신 쿠키로 인증합니다.
 async function requestJson(url, options = {}) {
     const response = await fetch(url, {
         ...options,
+        credentials: 'include',
         headers: {
-            ...authHeaders(),
+            'Content-Type': 'application/json',
             ...(options.headers || {})
         }
     });
+
+    // ### 401이면 로그인 페이지로 이동
+    if (response.status === 401) {
+        location.href = '/auth/login';
+        return;
+    }
 
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.result) {
@@ -171,7 +150,7 @@ async function loadTags() {
 }
 
 function renderTags(tags) {
-    const container = document.getElementById('tagContainer');
+    const container  = document.getElementById('tagContainer');
     const emptyState = document.getElementById('emptyState');
     container.innerHTML = '';
 
@@ -185,10 +164,10 @@ function renderTags(tags) {
 }
 
 function createTagCard(tag) {
-    const card = document.createElement('div');
+    const card  = document.createElement('div');
     card.className = 'card shadow-sm';
-
     const color = normalizeColor(tag.color);
+
     card.innerHTML = `
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-center">
@@ -200,16 +179,13 @@ function createTagCard(tag) {
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-icon btn-light btn-edit-tag">
                         <i class="ki-duotone ki-pencil fs-5">
-                            <span class="path1"></span>
-                            <span class="path2"></span>
+                            <span class="path1"></span><span class="path2"></span>
                         </i>
                     </button>
                     <button type="button" class="btn btn-sm btn-icon btn-light-danger btn-delete-tag">
                         <i class="ki-duotone ki-trash fs-5">
-                            <span class="path1"></span>
-                            <span class="path2"></span>
-                            <span class="path3"></span>
-                            <span class="path4"></span>
+                            <span class="path1"></span><span class="path2"></span>
+                            <span class="path3"></span><span class="path4"></span>
                             <span class="path5"></span>
                         </i>
                     </button>
@@ -218,27 +194,16 @@ function createTagCard(tag) {
         </div>
     `;
 
-    card.querySelector('.btn-edit-tag').addEventListener('click', () => {
-        openEditTag(tag.tagId, tag.name, color);
-    });
-    card.querySelector('.btn-delete-tag').addEventListener('click', () => {
-        deleteTag(tag.tagId);
-    });
-
+    card.querySelector('.btn-edit-tag').addEventListener('click', () => openEditTag(tag.tagId, tag.name, color));
+    card.querySelector('.btn-delete-tag').addEventListener('click', () => deleteTag(tag.tagId));
     return card;
 }
 
 function selectColor(el, color) {
     selectedColor = color;
-
-    // 선택 표시
-    document.querySelectorAll('.color-option').forEach(c => {
-        c.style.outline = 'none';
-    });
+    document.querySelectorAll('.color-option').forEach(c => c.style.outline = 'none');
     el.style.outline = `3px solid ${color}`;
     el.style.outlineOffset = '2px';
-
-    // 미리보기 업데이트
     const preview = document.getElementById('tagPreview');
     preview.style.backgroundColor = color + '20';
     preview.style.color = color;
@@ -277,24 +242,17 @@ function openEditTag(id, name, color) {
 async function saveTag() {
     const name = document.getElementById('tagName').value.trim();
     if (!name) {
-        Swal.fire({
-            text: "태그 이름을 입력해주세요.",
-            icon: "warning",
-            buttonsStyling: false,
-            confirmButtonText: "확인",
-            customClass: { confirmButton: "btn btn-primary" }
-        });
+        Swal.fire({ text: "태그 이름을 입력해주세요.", icon: "warning",
+            buttonsStyling: false, confirmButtonText: "확인",
+            customClass: { confirmButton: "btn btn-primary" } });
         return;
     }
 
     const method = editTagId ? 'PATCH' : 'POST';
-    const url = editTagId ? `/api/tags/${editTagId}` : '/api/tags';
+    const url    = editTagId ? `/api/tags/${editTagId}` : '/api/tags';
 
     try {
-        await requestJson(url, {
-            method,
-            body: JSON.stringify({ name, color: selectedColor })
-        });
+        await requestJson(url, { method, body: JSON.stringify({ name, color: selectedColor }) });
         bootstrap.Modal.getInstance(document.getElementById('tagModal')).hide();
         await loadTags();
     } catch (e) {
@@ -310,10 +268,7 @@ function deleteTag(id) {
         showCancelButton: true,
         confirmButtonText: "삭제",
         cancelButtonText: "취소",
-        customClass: {
-            confirmButton: "btn btn-danger",
-            cancelButton: "btn btn-light"
-        }
+        customClass: { confirmButton: "btn btn-danger", cancelButton: "btn btn-light" }
     }).then(result => {
         if (result.isConfirmed) {
             requestJson(`/api/tags/${id}`, { method: 'DELETE' })
@@ -324,21 +279,14 @@ function deleteTag(id) {
 }
 
 function showError(message) {
-    Swal.fire({
-        text: message,
-        icon: "error",
-        buttonsStyling: false,
-        confirmButtonText: "확인",
-        customClass: { confirmButton: "btn btn-primary" }
-    });
+    Swal.fire({ text: message, icon: "error", buttonsStyling: false,
+        confirmButtonText: "확인", customClass: { confirmButton: "btn btn-primary" } });
 }
 
 function escapeHtml(value) {
     return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
 }
 

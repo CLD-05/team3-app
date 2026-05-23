@@ -25,4 +25,9 @@ public interface MemoRepository extends JpaRepository<TbMemo, Long> {
     @Query("SELECT m FROM TbMemo m WHERE m.user.idxUser = :idxUser AND m.content LIKE %:keyword%")
     List<TbMemo> searchByUserIdAndContent(@Param("idxUser") Long idxUser, @Param("keyword") String keyword);
 
+    // ### 제목 검색 추가
+    // ### content만 검색하면 제목에 키워드가 있는 메모는 검색이 안 됩니다.
+    // ### title + content 둘 다 검색하도록 변경합니다.
+    @Query("SELECT m FROM TbMemo m WHERE m.user.idxUser = :idxUser AND (m.title LIKE %:keyword% OR m.content LIKE %:keyword%)")
+    List<TbMemo> searchByUserIdAndKeyword(@Param("idxUser") Long idxUser, @Param("keyword") String keyword);
 }

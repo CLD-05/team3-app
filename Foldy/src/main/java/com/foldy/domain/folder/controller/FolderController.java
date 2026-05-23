@@ -1,51 +1,39 @@
 package com.foldy.domain.folder.controller;
 
-import com.foldy.domain.folder.entity.TbFolder;
-import com.foldy.domain.folder.service.FolderService;
 import com.foldy.domain.user.entity.TbUser;
 import com.foldy.global.controller.BaseController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.List;
-
+// ### @RequestMapping("/folders") 제거
+// ### URL이 /folders/main 이었는데 /home 으로 변경했습니다.
+// ### 앞으로 뷰 페이지 URL은 도메인 prefix 없이 기능명으로 바로 매핑하는 방식을 사용합니다.
+// ### 예시: /home, /user/mypage, /memo/list 등
 @Controller
-@RequestMapping("/folders") // API 경로(/api/folders)와 겹치지 않도록 설정
 @RequiredArgsConstructor
 public class FolderController extends BaseController {
 
-    private final FolderService folderService;
+    // ### FolderService 제거
+    // ### 홈 화면은 폴더 데이터를 JS fetch로 비동기 조회하므로
+    // ### 서버에서 Model에 데이터를 담아 내려줄 필요가 없습니다.
+    // ### 뷰 컨트롤러는 "어떤 HTML을 보여줄지"만 결정합니다.
 
-    /**
-     * 홈 화면 / 폴더 메인 페이지 반환
-     * 요청 주소: GET http://localhost:8080/folders/main
-     */
-    @GetMapping("/main")
-    public String folderMainPage(Model model) {
-        
-        // 1. 비로그인 유저인 경우 접근을 차단하고 로그인 페이지로 리다이렉트
-        // (BaseController가 늘 true를 주게 고쳤으므로 무사히 통과합니다.)
-        if (!isLoggedIn()) {
-            logInfo("View - 비로그인 사용자의 접근으로 로그인 페이지 리다이렉트");
-            return "redirect:/login"; 
-        }
+    // ### /folders/main → /home 으로 변경
+    // ### 로그인 후 이동 경로가 /home 이므로 URL을 맞춰줍니다.
+    @GetMapping("/home")
+    public String homePage(Model model) {
 
-        // 2. 현재 로그인한 시큐리티 세션 유저 정보 가져오기
+        // ### redirect:/login → redirect:/auth/login 으로 변경
+        // ### 우리 프로젝트 로그인 URL은 /auth/login 입니다.
+        if (!isLoggedIn()) return "redirect:/auth/login";
+
+        // ### 닉네임은 마이페이지 API(/api/auth/me)에서 JS로 가져오므로 제거해도 됩니다.
+        // ### 필요하다면 아래처럼 Model에 담아서 Thymeleaf에서 바로 쓸 수 있습니다.
         TbUser currentUser = getCurrentUser();
-
-        // 3. 해당 유저가 가지고 있는 폴더 목록 조회
-        List<TbFolder> folderList = folderService.getFolderList(currentUser.getIdxUser());
-
-        // 4. HTML 화면에서 꺼내 쓸 수 있도록 Model에 데이터 적재
-        model.addAttribute("folders", folderList);
         model.addAttribute("userNickname", currentUser.getNickname());
 
-        logInfo("View - 폴더 메인 페이지 이동 [유저 닉네임: {}]", currentUser.getNickname());
-        
-        // 5. 실제 렌더링할 템플릿 파일 경로 및 이름 반환
-        return "pages/home/home"; 
+        return "pages/home/home";
     }
 }

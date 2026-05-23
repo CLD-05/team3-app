@@ -91,4 +91,13 @@ public class TbUser {
     public boolean isActive() {
         return this.deleteDate == null && this.status == Status.ACTIVE;
     }
+    
+    @Column(name = "GeminiApiKey", length = 255)
+    private String geminiApiKey;
+
+    // ### changeGeminiApiKey 메서드 추가
+    // ### 더티 체킹으로 자동 업데이트됩니다.
+    public void changeGeminiApiKey(String geminiApiKey) {
+        this.geminiApiKey = geminiApiKey;
+    }
 }
