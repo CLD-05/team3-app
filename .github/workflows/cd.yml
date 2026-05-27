@@ -46,6 +46,11 @@ jobs:
       # 3. AWS OIDC 인증
       #    hint: aws-actions/configure-aws-credentials@v4
       #    role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      - name: AWS OIDC 인증
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
       # 4. ECR 로그인
       #    hint: aws-actions/amazon-ecr-login@v2
       # 5. Docker 빌드 + push
