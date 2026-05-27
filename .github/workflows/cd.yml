@@ -46,13 +46,25 @@ jobs:
       # 3. AWS OIDC 인증
       #    hint: aws-actions/configure-aws-credentials@v4
       #    role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      - name: AWS OIDC 인증
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
       # 4. ECR 로그인
       #    hint: aws-actions/amazon-ecr-login@v2
+      - name: ECR 로그인
+        uses: aws-actions/amazon-ecr-login@v2
       # 5. Docker 빌드 + push
       #    hint: 태그는 ${{ github.sha }} 사용 (latest 금지!)
       #    ECR 주소: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/team3/foldy
       # ────────────────────────────────────────
+      - name: Docker 이미지 빌드 및 ECR Push
+        run: |
+          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/team3/foldy:${{ github.sha }}"
 
+          docker build -t "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
       # 김강혁 담당 ─────────────────────────────
       # 여기서부터 작업하세요
       # 6. Config 레포 image tag 갱신
