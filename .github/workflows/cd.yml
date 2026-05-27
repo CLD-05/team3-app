@@ -28,6 +28,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Maven 빌드 (테스트 스킵)
+        working-directory: Foldy
         run: ./mvnw clean package -DskipTests
 
       - name: 환경 분기 설정
@@ -63,16 +64,47 @@ jobs:
         run: |
           IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/team3/foldy:${{ github.sha }}"
 
-          docker build -t "$IMAGE_URI" .
+          docker build -t "$IMAGE_URI" ./Foldy
           docker push "$IMAGE_URI"
       # 김강혁 담당 ─────────────────────────────
-      # 여기서부터 작업하세요
       # 6. Config 레포 image tag 갱신
-      #    hint: actions/checkout@v4 로 team3-config 레포 clone
-      #    hint: kustomize edit set image 명령어 사용
-      #    hint: CONFIG_REPO_PAT으로 인증
-      #    갱신 경로: ${{ steps.env-setup.outputs.CONFIG_PATH }}
-      #    커밋 메시지: chore(image): bump app to {SHA 앞 7자리} [${{ steps.env-setup.outputs.ENV }}]
+      
+      # 커밋 SHA 앞 7자리 추출해서 short 변수에 저장
+      - name: Get Short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      # actions/checkout@v4 로 team3-config 레포 clone
+      - name: Checkout team3-config Repository
+        uses: actions/checkout@v4
+        with:
+          repository: 'CLD-05/team3-config'
+          token: ${{ secrets.CONFIG_REPO_PAT }}
+          path: team3-config
+
+      # 러너에 Kustomize가 없을 상황을 대비해 자동 설치
+      - name: Setup Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      # kustomize edit set image 명령어 사용 (갱신 경로 적용)
+      - name: Update Image Tag in Kustomize
+        run: |
+          cd team3-config/${{ steps.env-setup.outputs.CONFIG_PATH }}
+          kustomize edit set image foldy-app=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/team3/foldy:${{ github.sha }}
+
+      # 지정된 커밋 메시지 형식으로 team3-config에 자동 Push
+      # (동시 배포 충돌 방지를 위해 push 직전 git pull --rebase까지 안전하게 추가)
+      - name: Commit and Push to team3-config
+        run: |
+          cd team3-config
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add ${{ steps.env-setup.outputs.CONFIG_PATH }}/kustomization.yaml
+          git commit -m "chore(image): bump app to ${{ steps.sha.outputs.short }} [${{ steps.env-setup.outputs.ENV }}]"
+          git pull --rebase origin main
+          git push origin main
       # ────────────────────────────────────────
 
       # 김보경 담당 ─────────────────────────────
