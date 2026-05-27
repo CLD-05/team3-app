@@ -29,7 +29,9 @@ jobs:
 
       - name: Maven 빌드 (테스트 스킵)
         working-directory: Foldy
-        run: ./mvnw clean package -DskipTests
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
 
       - name: 환경 분기 설정
         id: env-setup

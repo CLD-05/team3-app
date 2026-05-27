@@ -23,7 +23,9 @@ jobs:
 
       - name: Build and Test with Maven
         working-directory: Foldy
-        run: ./mvnw clean verify
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify
 
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
