@@ -3,8 +3,8 @@ name: CD
 on:
   push:
     branches: [main]
-  tags:
-    - 'v*'
+    tags:
+      - 'v*'
 
 permissions:
   id-token: write
@@ -70,3 +70,20 @@ jobs:
       #    성공/실패 둘 다 알림
       #    if: failure() 조건으로 실패 알림
       # ────────────────────────────────────────
+      - name: Slack 알림 - 성공
+        if: success()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: '{"text": "배포 성공: ${{ github.repository }} (${{ steps.env-setup.outputs.ENV }})"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Slack 알림 - 실패
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: '{"text":"배포 실패: ${{ github.repository }} (${{ steps.env-setup.outputs.ENV }})"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
