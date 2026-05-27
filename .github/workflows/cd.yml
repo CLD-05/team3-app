@@ -1,0 +1,72 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  tags:
+    - 'v*'
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Maven 빌드 (테스트 스킵)
+        run: ./mvnw clean package -DskipTests
+
+      - name: 환경 분기 설정
+        id: env-setup
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "ENV=dev" >> $GITHUB_OUTPUT
+            echo "CONFIG_PATH=overlays/dev" >> $GITHUB_OUTPUT
+          else
+            echo "ENV=prod" >> $GITHUB_OUTPUT
+            echo "CONFIG_PATH=overlays/prod" >> $GITHUB_OUTPUT
+          fi
+
+      # 김시현 담당 ─────────────────────────────
+      # 여기서부터 작업하세요
+      # 3. AWS OIDC 인증
+      #    hint: aws-actions/configure-aws-credentials@v4
+      #    role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      # 4. ECR 로그인
+      #    hint: aws-actions/amazon-ecr-login@v2
+      # 5. Docker 빌드 + push
+      #    hint: 태그는 ${{ github.sha }} 사용 (latest 금지!)
+      #    ECR 주소: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/team3/foldy
+      # ────────────────────────────────────────
+
+      # 김강혁 담당 ─────────────────────────────
+      # 여기서부터 작업하세요
+      # 6. Config 레포 image tag 갱신
+      #    hint: actions/checkout@v4 로 team3-config 레포 clone
+      #    hint: kustomize edit set image 명령어 사용
+      #    hint: CONFIG_REPO_PAT으로 인증
+      #    갱신 경로: ${{ steps.env-setup.outputs.CONFIG_PATH }}
+      #    커밋 메시지: chore(image): bump app to {SHA 앞 7자리} [${{ steps.env-setup.outputs.ENV }}]
+      # ────────────────────────────────────────
+
+      # 김보경 담당 ─────────────────────────────
+      # 여기서부터 작업하세요
+      # 7. Slack 배포 알림
+      #    hint: 찾아볼 것 "slack github actions notification"
+      #    성공/실패 둘 다 알림
+      #    if: failure() 조건으로 실패 알림
+      # ────────────────────────────────────────
