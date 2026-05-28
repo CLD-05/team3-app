@@ -20,7 +20,7 @@ jobs:
     name: Build and Push to ECR
     runs-on: ubuntu-latest
     outputs:
-      image_tag: ${{ github.sha }}
+      image_tag: ${{ steps.tag.outputs.tag }}
       env_name: ${{ steps.env-setup.outputs.ENV }}
       config_path: ${{ steps.env-setup.outputs.CONFIG_PATH }}
     steps:
@@ -110,7 +110,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add ${{ needs.build-and-push.outputs.config_path }}/kustomization.yaml
-          git commit -m "chore(image): bump app to ${{ steps.sha.outputs.short }} [${{ needs.build-and-push.outputs.env_name }}]"
+          git diff --staged --quiet || git commit \
+            -m "chore(image): bump app to ${{ needs.build-and-push.outputs.image_tag }} [${{ needs.build-and-push.outputs.env_name }}] [skip ci]"
           git pull --rebase origin main
           git push origin main
       # ─────────────────────────────────────────
