@@ -53,6 +53,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/logout").permitAll()
                 // actuator health (K8s probe용)
                 .requestMatchers("/actuator/health").permitAll()
+                // SecurityConfig.java
+                .requestMatchers("/actuator/**").permitAll()
                 // 나머지 전부 인증 필요
                 .anyRequest().authenticated()
             )
