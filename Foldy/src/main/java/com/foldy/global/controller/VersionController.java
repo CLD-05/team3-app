@@ -8,6 +8,6 @@ public class VersionController {
 
     @GetMapping("/version")
     public String version() {
-        return "foldy version: v1.5";
+        return "foldy version: v1.6";
     }
 }
