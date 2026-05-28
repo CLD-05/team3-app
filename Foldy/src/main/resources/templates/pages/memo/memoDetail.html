@@ -194,7 +194,7 @@
                     const presignJson = await presignRes.json();
                     if (!presignJson?.result) continue;
 
-                    const { presignedUrl, key, publicUrl } = presignJson.data;
+                    const { uploadUrl: presignedUrl, key, publicUrl } = presignJson.data;
 
                     // 2. S3에 직접 PUT
                     await fetch(presignedUrl, {
