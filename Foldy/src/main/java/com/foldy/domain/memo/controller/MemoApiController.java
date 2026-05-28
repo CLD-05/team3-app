@@ -1,23 +1,36 @@
 package com.foldy.domain.memo.controller;
 
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.foldy.domain.memo.dto.MemoCreateDto;
 import com.foldy.domain.memo.dto.MemoDetailDto;
 import com.foldy.domain.memo.dto.MemoListItemDto;
 import com.foldy.domain.memo.dto.MemoTagUpdateDto;
 import com.foldy.domain.memo.dto.MemoUpdateDto;
+import com.foldy.domain.memo.dto.PresignedUrlDto;
+import com.foldy.domain.memo.dto.ImageConfirmDto;
 import com.foldy.domain.memo.service.MemoService;
 import com.foldy.domain.user.entity.TbUser;
 import com.foldy.global.controller.BaseController;
 import com.foldy.global.exception.CustomException;
 import com.foldy.global.response.ApiResponse;
 import com.foldy.global.response.PageResponse;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/memo")
@@ -77,14 +90,34 @@ public class MemoApiController extends BaseController {
         return ok();
     }
 
-    // 이미지 업로드 — POST /api/memo/{idxMemo}/image (multipart/form-data, field: file)
-    @PostMapping("/{idxMemo}/image")
-    public ResponseEntity<ApiResponse<MemoDetailDto.ImageInfo>> uploadImage(
+//    // 이미지 업로드 — POST /api/memo/{idxMemo}/image (multipart/form-data, field: file)
+//    @PostMapping("/{idxMemo}/image")
+//    public ResponseEntity<ApiResponse<MemoDetailDto.ImageInfo>> uploadImage(
+//            @PathVariable Long idxMemo,
+//            @RequestParam("file") MultipartFile file) {
+//        TbUser user = requireUser();
+//        return ok(memoService.uploadImage(idxMemo, file, user));
+//    }
+    
+    // 1단계: Presigned URL 발급 — GET /api/memo/{idxMemo}/image/presigned-url
+    @GetMapping("/{idxMemo}/image/presigned-url")
+    public ResponseEntity<ApiResponse<PresignedUrlDto>> getImageUploadUrl(
             @PathVariable Long idxMemo,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("fileName") String fileName,
+            @RequestParam("contentType") String contentType) {
         TbUser user = requireUser();
-        return ok(memoService.uploadImage(idxMemo, file, user));
+        return ok(memoService.presignImageUpload(idxMemo, fileName, contentType, user));
     }
+
+    // 2단계: 업로드 완료 통보 — POST /api/memo/{idxMemo}/image/confirm
+    @PostMapping("/{idxMemo}/image/confirm")
+    public ResponseEntity<ApiResponse<MemoDetailDto.ImageInfo>> confirmImageUpload(
+            @PathVariable Long idxMemo,
+            @Valid @RequestBody ImageConfirmDto dto) {
+        TbUser user = requireUser();
+        return ok(memoService.confirmImageUpload(idxMemo, dto, user));
+    }
+    
 
     // 이미지 삭제 — DELETE /api/memo/image/{idxMemoImage}
     @DeleteMapping("/image/{idxMemoImage}")

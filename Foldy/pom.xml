@@ -84,8 +84,7 @@
 			<version>4.4.0</version>
 		</dependency>
 
-		### AWS S3 — EKS 배포 후 활성화
-		### 활성화 시 application.properties의 S3 설정도 함께 주석 해제
+		<!--AWS S3 — EKS 배포 후 활성화 , 활성화 시 application.properties의 S3 설정도 함께 주석 해제-->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>

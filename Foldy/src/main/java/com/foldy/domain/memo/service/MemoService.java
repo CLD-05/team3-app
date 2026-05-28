@@ -14,6 +14,9 @@ import com.foldy.domain.memo.util.S3Uploader;
 import com.foldy.domain.tag.entity.TbTag;
 import com.foldy.domain.user.entity.TbUser;
 import com.foldy.global.exception.CustomException;
+import com.foldy.domain.memo.dto.PresignedUrlDto;
+import com.foldy.domain.memo.dto.ImageConfirmDto;
+
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,6 +42,12 @@ import java.util.stream.Collectors;
 @Transactional
 @RequiredArgsConstructor
 public class MemoService {
+	
+    @Value("${aws.s3.bucket}")
+    private String bucketName;
+
+    @Value("${aws.region}")
+    private String regionName;
 
 	private final MemoRepository memoRepository;
 	private final MemoImageRepository memoImageRepository;
@@ -125,19 +135,19 @@ public class MemoService {
 	}
 
 	// ─────────────────────────────────────────
-	// 이미지 업로드
+	// 이미지 업로드 메소드 교체
 	// ─────────────────────────────────────────
 
-	public MemoDetailDto.ImageInfo uploadImage(Long idxMemo, MultipartFile file, TbUser user) {
-		TbMemo memo = findOwnedMemo(idxMemo, user);
-		S3Uploader.Uploaded uploaded = s3Uploader.upload(file, "memo/" + memo.getIdxMemo());
-
-		TbMemoImage image = TbMemoImage.builder().memo(memo).s3Url(uploaded.url()).fileName(uploaded.originalFileName())
-				.build();
-		memoImageRepository.save(image);
-
-		return new MemoDetailDto.ImageInfo(image.getIdxMemoImage(), image.getS3Url(), image.getFileName());
-	}
+//	public MemoDetailDto.ImageInfo uploadImage(Long idxMemo, MultipartFile file, TbUser user) {
+//		TbMemo memo = findOwnedMemo(idxMemo, user);
+//		S3Uploader.Uploaded uploaded = s3Uploader.upload(file, "memo/" + memo.getIdxMemo());
+//
+//		TbMemoImage image = TbMemoImage.builder().memo(memo).s3Url(uploaded.url()).fileName(uploaded.originalFileName())
+//				.build();
+//		memoImageRepository.save(image);
+//
+//		return new MemoDetailDto.ImageInfo(image.getIdxMemoImage(), image.getS3Url(), image.getFileName());
+//	}
 
 	// ─────────────────────────────────────────
 	// 이미지 삭제
@@ -150,6 +160,43 @@ public class MemoService {
 		s3Uploader.delete(image.getS3Url());
 		memoImageRepository.delete(image);
 	}
+	
+	// ─────────────────────────────────────────
+	// 이미지 업로드 (Presigned URL 패턴)
+	// ─────────────────────────────────────────
+
+	// 1단계: 사용자가 메모 소유자인지 검증 후 presigned URL 발급
+	@Transactional(readOnly = true)
+	public PresignedUrlDto presignImageUpload(Long idxMemo, String fileName, String contentType, TbUser user) {
+	    TbMemo memo = findOwnedMemo(idxMemo, user);
+	    String dir = "memo/" + memo.getIdxMemo();
+	    return s3Uploader.presignUpload(dir, fileName, contentType);
+	}
+
+	// 2단계: 클라이언트가 S3에 직접 업로드 완료 후 호출 — DB 메타데이터만 저장
+	public MemoDetailDto.ImageInfo confirmImageUpload(Long idxMemo, ImageConfirmDto dto, TbUser user) {
+	    TbMemo memo = findOwnedMemo(idxMemo, user);
+
+	    // key가 이 메모 폴더 prefix를 따르는지 검증 (다른 사람 키 등록 방지)
+	    String expectedPrefix = "memo/" + memo.getIdxMemo() + "/";
+	    if (!dto.getKey().startsWith(expectedPrefix)) {
+	        throw CustomException.badRequest("잘못된 이미지 경로입니다.");
+	    }
+
+	    String publicUrl = String.format("https://%s.s3.%s.amazonaws.com/%s",
+	            bucketName, regionName, dto.getKey());
+
+	    TbMemoImage image = TbMemoImage.builder()
+	            .memo(memo)
+	            .s3Url(publicUrl)
+	            .fileName(dto.getOriginalFileName())
+	            .build();
+	    memoImageRepository.save(image);
+
+	    log.info("[MemoService] 이미지 메타 저장 — idxMemoImage={}, key={}", image.getIdxMemoImage(), dto.getKey());
+	    return new MemoDetailDto.ImageInfo(image.getIdxMemoImage(), image.getS3Url(), image.getFileName());
+	}
+
 
 	// ─────────────────────────────────────────
 	// 내부 헬퍼

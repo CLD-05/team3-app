@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>업로드 테스트</title></head>
+<body>
+  <h2>이미지 업로드 테스트</h2>
+  메모 ID: <input id="memoId" value="1" type="number"><br>
+  파일: <input id="file" type="file" accept="image/*"><br>
+  <button onclick="upload()">업로드</button>
+  <pre id="log"></pre>
+
+<script>
+async function upload() {
+  const memoId = document.getElementById('memoId').value;
+  const file = document.getElementById('file').files[0];
+  const log = (m) => document.getElementById('log').textContent += m + '\n';
+
+  try {
+    // 1. presigned URL 받기
+    log('① presigned URL 요청...');
+    const r1 = await fetch(`/api/memo/${memoId}/image/presigned-url?fileName=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
+    const { data: { uploadUrl, key } } = await r1.json();
+    log('uploadUrl 받음: ' + uploadUrl.substring(0, 80) + '...');
+
+    // 2. S3에 직접 PUT
+    log('② S3로 PUT...');
+    const r2 = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+    log('S3 응답: ' + r2.status);
+
+    // 3. confirm
+    log('③ confirm...');
+    const r3 = await fetch(`/api/memo/${memoId}/image/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, originalFileName: file.name })
+    });
+    log('완료: ' + JSON.stringify(await r3.json()));
+  } catch (e) {
+    log('에러: ' + e.message);
+  }
+}
+</script>
+</body>
+</html>
