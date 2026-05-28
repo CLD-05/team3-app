@@ -3,6 +3,7 @@ package com.foldy.domain.folder.service;
 import com.foldy.domain.folder.dto.FolderResponse;
 import com.foldy.domain.folder.entity.TbFolder;
 import com.foldy.domain.folder.repository.FolderRepository;
+import com.foldy.domain.memo.repository.MemoRepository;
 import com.foldy.domain.user.entity.TbUser;
 import com.foldy.domain.user.repository.UserRepository;
 import com.foldy.global.exception.CustomException;
@@ -19,6 +20,7 @@ public class FolderService {
 
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
+    private final MemoRepository memoRepository;
 
     @Transactional
     public Long createFolder(Long userId, String folderName) {
@@ -59,10 +61,23 @@ public class FolderService {
         folder.updateName(newName);
     }
 
+    
     @Transactional
-    public void deleteFolder(Long folderId) {
+    public boolean deleteFolder(Long folderId) {
+        // 1. 존재하는 폴더인지 먼저 검증 (기존 예외 처리 유지)
         TbFolder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> CustomException.notFound("존재하지 않는 폴더입니다."));
+
+        // 2. 🎯 엔티티 변수명(folder)에 맞춰 레포지토리 메서드 호출하도록 수정 완료!
+        long memoCount = memoRepository.countByFolder(folder); 
+
+        // 3. 메모가 1개라도 남아있다면 삭제를 진행하지 않고 false 리턴!
+        if (memoCount > 0) {
+            return false; 
+        }
+
+        // 4. 메모가 0개일 때만 안전하게 폴더를 삭제
         folderRepository.delete(folder);
+        return true;
     }
 }

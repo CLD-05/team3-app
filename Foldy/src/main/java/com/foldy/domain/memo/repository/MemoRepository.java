@@ -1,5 +1,6 @@
 package com.foldy.domain.memo.repository;
 
+import com.foldy.domain.folder.entity.TbFolder;
 import com.foldy.domain.memo.entity.TbMemo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,4 +31,12 @@ public interface MemoRepository extends JpaRepository<TbMemo, Long> {
     // ### title + content 둘 다 검색하도록 변경합니다.
     @Query("SELECT m FROM TbMemo m WHERE m.user.idxUser = :idxUser AND (m.title LIKE %:keyword% OR m.content LIKE %:keyword%)")
     List<TbMemo> searchByUserIdAndKeyword(@Param("idxUser") Long idxUser, @Param("keyword") String keyword);
+    
+
+    // 폴더 ID(Idx_Folder)를 기반으로 속한 메모의 총 개수를 구하는 메서드
+    long countByFolderIdxFolder(int idxFolder);
+    
+    // 폴더 엔티티(folder 필드)를 기반으로 속한 메모의 총 개수를 구하는 메서드
+    long countByFolder(TbFolder folder);
+
 }
