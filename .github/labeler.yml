@@ -12,14 +12,17 @@ ci:
   - changed-files:
     - any-glob-to-any-file: [".github/**"]
 
-infra:
-  - changed-files:
-    - any-glob-to-any-file: ["infra/**", "*.tf"]
-
 backend:
   - changed-files:
-    - any-glob-to-any-file: ["src/**/*.java"]
+    - any-glob-to-any-file: ["Foldy/src/**/*.java"]
 
 frontend:
   - changed-files:
-    - any-glob-to-any-file: ["src/main/resources/templates/**"]
+    - any-glob-to-any-file: ["Foldy/src/main/resources/templates/**"]
+
+docker:
+  - changed-files:
+    - any-glob-to-any-file: ["Foldy/Dockerfile"]
+
+version:
+  - head-branch: ["^version/", "version/"]
