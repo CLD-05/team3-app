@@ -1,177 +1,183 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head th:replace="~{fragments/head :: head('통계')}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
-<div class="d-flex flex-column" style="height: 100vh;">
+    <div class="d-flex flex-column" style="height: 100vh;">
 
-    <div th:replace="~{fragments/header :: header-main}"></div>
+        <div th:replace="~{fragments/header :: header-main}"></div>
 
-    <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
-        <div class="p-4 w-100 d-flex flex-column gap-4">
+        <div id="scrollContainer" class="flex-grow-1" style="overflow-y: auto;">
+            <div class="p-4 w-100 d-flex flex-column gap-4">
 
-            <!--요약 카드 3개-->
-            <div class="d-flex gap-3">
-                <div class="card shadow-sm flex-grow-1">
-                    <div class="card-body py-4 text-center">
-                        <span id="statMemo" class="fs-2x fw-bolder text-primary">-</span>
-                        <div class="fs-8 text-gray-500 mt-1">전체 메모</div>
+                <!--요약 카드 3개-->
+                <div class="d-flex gap-3">
+                    <div class="card shadow-sm flex-grow-1">
+                        <div class="card-body py-4 text-center">
+                            <span id="statMemo" class="fs-2x fw-bolder text-primary">-</span>
+                            <div class="fs-8 text-gray-500 mt-1">전체 메모</div>
+                        </div>
                     </div>
-                </div>
-                <div class="card shadow-sm flex-grow-1">
-                    <div class="card-body py-4 text-center">
-                        <span id="statFolder" class="fs-2x fw-bolder text-success">-</span>
-                        <div class="fs-8 text-gray-500 mt-1">전체 폴더</div>
+                    <div class="card shadow-sm flex-grow-1">
+                        <div class="card-body py-4 text-center">
+                            <span id="statFolder" class="fs-2x fw-bolder text-success">-</span>
+                            <div class="fs-8 text-gray-500 mt-1">전체 폴더</div>
+                        </div>
                     </div>
-                </div>
-                <div class="card shadow-sm flex-grow-1">
-                    <div class="card-body py-4 text-center">
-                        <span id="statTag" class="fs-2x fw-bolder text-warning">-</span>
-                        <div class="fs-8 text-gray-500 mt-1">전체 태그</div>
-                    </div>
-                </div>
-            </div>
-
-            <!--이번 주 활동-->
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title fs-6 fw-bold">📅 이번 주 메모 활동</h3>
-                </div>
-                <div class="card-body">
-                    <canvas id="weeklyChart" height="150"></canvas>
-                </div>
-            </div>
-
-            <!--태그별 메모 분포-->
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title fs-6 fw-bold">🏷️ 태그별 메모 분포</h3>
-                </div>
-                <div class="card-body d-flex justify-content-center">
-                    <div style="width: 250px; height: 250px;">
-                        <canvas id="tagChart"></canvas>
-                    </div>
-                </div>
-                <!--범례 — JS로 동적 생성-->
-                <div class="card-body pt-0">
-                    <div id="tagLegend" class="d-flex flex-column gap-2"></div>
-                </div>
-            </div>
-
-            <!--최근 활동-->
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title fs-6 fw-bold">⏱️ 최근 활동</h3>
-                </div>
-                <div id="timelineContainer" class="card-body d-flex flex-column gap-3">
-                    <div class="text-center py-3">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ### AI 요약 카드 — 별도 섹션으로 분리
-                 ### 통계 로드 후 별도 fetch로 비동기 호출합니다.
-                 ### API 키가 없으면 등록 안내를 보여줍니다. -->
-            <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title fs-6 fw-bold">🤖 AI 학습 요약</h3>
-                    <button id="btnAiRefresh" class="btn btn-sm btn-light" onclick="loadAiSummary()">
-                        <i class="ki-duotone ki-arrows-circle fs-5">
-                            <span class="path1"></span>
-                            <span class="path2"></span>
-                        </i>
-                        새로 분석
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div id="aiSummaryContent">
-                        <div class="text-center py-3">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                            <span class="fs-7 text-gray-500 ms-2">AI가 메모를 분석 중이에요...</span>
+                    <div class="card shadow-sm flex-grow-1">
+                        <div class="card-body py-4 text-center">
+                            <span id="statTag" class="fs-2x fw-bolder text-warning">-</span>
+                            <div class="fs-8 text-gray-500 mt-1">전체 태그</div>
                         </div>
                     </div>
                 </div>
-            </div>
 
+                <!--이번 주 활동-->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h3 class="card-title fs-6 fw-bold">📅 이번 주 메모 활동</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="weeklyChart" height="150"></canvas>
+                    </div>
+                </div>
+
+                <!--태그별 메모 분포-->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h3 class="card-title fs-6 fw-bold">🏷️ 태그별 메모 분포</h3>
+                    </div>
+                    <div class="card-body d-flex justify-content-center">
+                        <div style="width: 250px; height: 250px;">
+                            <canvas id="tagChart"></canvas>
+                        </div>
+                    </div>
+                    <!--범례 — JS로 동적 생성-->
+                    <div class="card-body pt-0">
+                        <div id="tagLegend" class="d-flex flex-column gap-2"></div>
+                    </div>
+                </div>
+
+                <!--최근 활동-->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h3 class="card-title fs-6 fw-bold">⏱️ 최근 활동</h3>
+                    </div>
+                    <div id="timelineContainer" class="card-body d-flex flex-column gap-3">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ### AI 요약 카드 — 별도 섹션으로 분리
+                 ### 통계 로드 후 별도 fetch로 비동기 호출합니다.
+                 ### API 키가 없으면 등록 안내를 보여줍니다. -->
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title fs-6 fw-bold">🤖 AI 학습 요약</h3>
+                        <button id="btnAiRefresh" class="btn btn-sm btn-light" onclick="loadAiSummary()">
+                            <i class="ki-duotone ki-arrows-circle fs-5">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                            </i>
+                            새로 분석
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="aiSummaryContent">
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                <span class="fs-7 text-gray-500 ms-2">AI가 메모를 분석 중이에요...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
+
+        <div th:replace="~{fragments/navbar :: navbar-main('stats')}"></div>
+
     </div>
 
-    <div th:replace="~{fragments/navbar :: navbar-main('stats')}"></div>
+    <script th:src="@{/plugins/global/plugins.bundle.js}"></script>
+    <script th:src="@{/js/scripts.bundle.js}"></script>
 
-</div>
+    <script>
+        let weeklyChartInstance = null;
+        let tagChartInstance = null;
 
-<script th:src="@{/plugins/global/plugins.bundle.js}"></script>
-<script th:src="@{/js/scripts.bundle.js}"></script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // ### 통계와 AI를 분리해서 호출
+            // ### 통계는 즉시, AI는 통계 완료 후 비동기로 호출합니다.
+            loadStats();
+        });
 
-<script>
-let weeklyChartInstance = null;
-let tagChartInstance    = null;
+        function loadStats() {
+            fetch('/api/stats', { credentials: 'include' })
+                .then(res => {
+                    if (res.status === 401) { location.href = '/auth/login'; return; }
+                    return res.json();
+                })
+                .then(res => {
+                    if (!res || !res.result) return;
+                    const data = res.data;
 
-document.addEventListener('DOMContentLoaded', function () {
-    // ### 통계와 AI를 분리해서 호출
-    // ### 통계는 즉시, AI는 통계 완료 후 비동기로 호출합니다.
-    loadStats();
-});
+                    // [1] 기본 통계
+                    document.getElementById('statMemo').textContent = data.summary.totalMemos ?? 0;
+                    document.getElementById('statFolder').textContent = data.summary.totalFolders ?? 0;
+                    document.getElementById('statTag').textContent = data.summary.totalTags ?? 0;
 
-function loadStats() {
-    fetch('/api/stats', { credentials: 'include' })
-    .then(res => {
-        if (res.status === 401) { location.href = '/auth/login'; return; }
-        return res.json();
-    })
-    .then(res => {
-        if (!res || !res.result) return;
-        const data = res.data;
+                    // [2] 이번 주 메모 활동
+                    renderWeeklyChart(data.summary.weeklyCounts ?? [0, 0, 0, 0, 0, 0, 0]);
 
-        // [1] 기본 통계
-        document.getElementById('statMemo').textContent   = data.summary.totalMemos   ?? 0;
-        document.getElementById('statFolder').textContent = data.summary.totalFolders ?? 0;
-        document.getElementById('statTag').textContent    = data.summary.totalTags    ?? 0;
+                    // [3] 태그별 분포
+                    renderTagChart(
+                        data.tagStats?.labels ?? [],
+                        data.tagStats?.counts ?? [],
+                        data.tagStats?.colors ?? []
+                    );
 
-        // [2] 이번 주 메모 활동
-        renderWeeklyChart(data.summary.weeklyCounts ?? [0,0,0,0,0,0,0]);
+                    // [4] 최근 활동
+                    renderTimeline(data.timeline ?? []);
 
-        // [3] 태그별 분포
-        renderTagChart(
-            data.tagStats?.labels ?? [],
-            data.tagStats?.counts ?? [],
-            data.tagStats?.colors ?? []
-        );
+                    // ### AI 요약은 페이지 로드 시 호출 안 함
+                    // ### 버튼 클릭 시 loadAiSummary() 호출
+                    document.getElementById('aiSummaryContent').innerHTML = `
+            <div class="d-flex flex-column align-items-center gap-2 py-3">
+                <span class="fs-7 text-gray-500">버튼을 눌러 AI 분석을 시작하세요.</span>
+            </div>
+        `;
+                })
+                .catch(err => console.error('통계 로드 에러:', err));
+        }
 
-        // [4] 최근 활동
-        renderTimeline(data.timeline ?? []);
-
-        // ### [5] AI 요약 — 통계 로드 완료 후 별도 호출
-        // ### aiSummary가 null이면 API 키 미등록 상태입니다.
-        renderAiSummary(data.aiSummary);
-    })
-    .catch(err => console.error('통계 로드 에러:', err));
-}
-
-// ### AI만 따로 다시 불러오는 함수
-// ### "새로 분석" 버튼 클릭 시 호출됩니다.
-function loadAiSummary() {
-    document.getElementById('aiSummaryContent').innerHTML = `
+        // ### AI만 따로 다시 불러오는 함수
+        // ### "새로 분석" 버튼 클릭 시 호출됩니다.
+        function loadAiSummary() {
+            document.getElementById('aiSummaryContent').innerHTML = `
         <div class="text-center py-3">
             <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
             <span class="fs-7 text-gray-500 ms-2">AI가 메모를 분석 중이에요...</span>
         </div>
     `;
-    fetch('/api/stats', { credentials: 'include' })
-    .then(res => res.json())
-    .then(res => {
-        if (res?.result) renderAiSummary(res.data.aiSummary);
-    })
-    .catch(err => console.error('AI 요약 에러:', err));
-}
+            fetch('/api/stats', { credentials: 'include' })
+                .then(res => res.json())
+                .then(res => {
+                    if (res?.result) renderAiSummary(res.data.aiSummary);
+                })
+                .catch(err => console.error('AI 요약 에러:', err));
+        }
 
-function renderAiSummary(aiSummary) {
-    const container = document.getElementById('aiSummaryContent');
-    if (aiSummary === null || aiSummary === undefined) {
-        // ### API 키 미등록 안내
-        container.innerHTML = `
+        function renderAiSummary(aiSummary) {
+            const container = document.getElementById('aiSummaryContent');
+            if (aiSummary === null || aiSummary === undefined) {
+                // ### API 키 미등록 안내
+                container.innerHTML = `
             <div class="d-flex flex-column align-items-center gap-2 py-3">
                 <span class="fs-7 text-gray-500">AI 요약을 사용하려면 Gemini API 키를 등록해주세요.</span>
                 <a href="/user/mypage" class="btn btn-sm btn-light-primary">
@@ -179,73 +185,73 @@ function renderAiSummary(aiSummary) {
                 </a>
             </div>
         `;
-    } else {
-        container.innerHTML = `
+            } else {
+                container.innerHTML = `
             <p class="fs-7 text-gray-700 lh-lg mb-0">${aiSummary}</p>
         `;
-    }
-}
-
-function renderWeeklyChart(weeklyCounts) {
-    if (weeklyChartInstance) weeklyChartInstance.destroy();
-    weeklyChartInstance = new Chart(document.getElementById('weeklyChart'), {
-        type: 'bar',
-        data: {
-            labels: ['월', '화', '수', '목', '금', '토', '일'],
-            datasets: [{
-                label: '메모 수',
-                data: weeklyCounts,
-                backgroundColor: '#009EF720',
-                borderColor: '#009EF7',
-                borderWidth: 2,
-                borderRadius: 6,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#F4F4F4' } },
-                x: { grid: { display: false } }
             }
         }
-    });
-}
 
-function renderTagChart(labels, counts, colors) {
-    if (tagChartInstance) tagChartInstance.destroy();
-
-    // ### 태그 없을 때 빈 상태 처리
-    if (!labels || labels.length === 0) {
-        document.getElementById('tagChart').parentElement.innerHTML =
-            '<p class="fs-7 text-gray-400 text-center py-5">등록된 태그가 없어요</p>';
-        return;
-    }
-
-    tagChartInstance = new Chart(document.getElementById('tagChart'), {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: counts,
-                backgroundColor: colors,
-                borderWidth: 0,
-            }]
-        },
-        options: {
-            responsive: true,
-            cutout: '65%',
-            plugins: { legend: { display: false } }
+        function renderWeeklyChart(weeklyCounts) {
+            if (weeklyChartInstance) weeklyChartInstance.destroy();
+            weeklyChartInstance = new Chart(document.getElementById('weeklyChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['월', '화', '수', '목', '금', '토', '일'],
+                    datasets: [{
+                        label: '메모 수',
+                        data: weeklyCounts,
+                        backgroundColor: '#009EF720',
+                        borderColor: '#009EF7',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#F4F4F4' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
         }
-    });
 
-    // ### 범례 동적 생성
-    const total = counts.reduce((a, b) => a + b, 0);
-    const legend = document.getElementById('tagLegend');
-    legend.innerHTML = '';
-    labels.forEach((label, i) => {
-        const pct = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
-        legend.insertAdjacentHTML('beforeend', `
+        function renderTagChart(labels, counts, colors) {
+            if (tagChartInstance) tagChartInstance.destroy();
+
+            // ### 태그 없을 때 빈 상태 처리
+            if (!labels || labels.length === 0) {
+                document.getElementById('tagChart').parentElement.innerHTML =
+                    '<p class="fs-7 text-gray-400 text-center py-5">등록된 태그가 없어요</p>';
+                return;
+            }
+
+            tagChartInstance = new Chart(document.getElementById('tagChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '65%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // ### 범례 동적 생성
+            const total = counts.reduce((a, b) => a + b, 0);
+            const legend = document.getElementById('tagLegend');
+            legend.innerHTML = '';
+            labels.forEach((label, i) => {
+                const pct = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
+                legend.insertAdjacentHTML('beforeend', `
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
                     <div class="w-10px h-10px rounded-circle" style="background-color: ${colors[i]};"></div>
@@ -254,21 +260,21 @@ function renderTagChart(labels, counts, colors) {
                 <span class="fs-7 fw-semibold text-gray-800">${counts[i]}개 (${pct}%)</span>
             </div>
         `);
-    });
-}
+            });
+        }
 
-function renderTimeline(timeline) {
-    const container = document.getElementById('timelineContainer');
-    if (!timeline || timeline.length === 0) {
-        container.innerHTML = '<p class="fs-7 text-gray-400 text-center py-3">최근 활동이 없어요</p>';
-        return;
-    }
+        function renderTimeline(timeline) {
+            const container = document.getElementById('timelineContainer');
+            if (!timeline || timeline.length === 0) {
+                container.innerHTML = '<p class="fs-7 text-gray-400 text-center py-3">최근 활동이 없어요</p>';
+                return;
+            }
 
-    const colors = ['bg-primary', 'bg-success', 'bg-warning', 'bg-info', 'bg-danger'];
-    container.innerHTML = timeline.map((item, i) => {
-        const date = item.createdAt ? new Date(item.createdAt) : new Date();
-        const dateStr = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
-        return `
+            const colors = ['bg-primary', 'bg-success', 'bg-warning', 'bg-info', 'bg-danger'];
+            container.innerHTML = timeline.map((item, i) => {
+                const date = item.createdAt ? new Date(item.createdAt) : new Date();
+                const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+                return `
             <div class="d-flex align-items-center gap-3">
                 <div class="w-8px h-8px rounded-circle ${colors[i % colors.length]}"></div>
                 <div class="d-flex flex-column flex-grow-1">
@@ -277,9 +283,10 @@ function renderTimeline(timeline) {
                 </div>
             </div>
         `;
-    }).join('');
-}
-</script>
+            }).join('');
+        }
+    </script>
 
 </body>
+
 </html>
