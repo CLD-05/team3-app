@@ -335,4 +335,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# End of https://www.toptal.com/developers/gitignore/api/macos,windows,linux,java,maven,intellij,eclipse,visualstudiocode
+# End of https://www.toptal.com/developers/gitignore/api/macos,windows,linux,java,maven,intellij,eclipse,visualstudiocode!.env.example
+
+!.env.example

@@ -1,0 +1,65 @@
+# ──────────────────────────────────────────────────────────
+# docker-compose.yml — Foldy용 (MySQL + Spring Boot)
+# 위치: team3-app/docker-compose.yml
+#
+# 사용법:
+#   cp .env.example .env     →  실제 값 입력
+#   docker-compose up -d
+#   curl http://localhost:8080/actuator/health
+# ──────────────────────────────────────────────────────────
+
+services:
+  # ── MySQL ─────────────────────────────────────────────
+  db:
+    image: mysql:8.4
+    container_name: foldy-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE:      ${DB_NAME:-foldy}
+      MYSQL_USER:          ${DB_USERNAME}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - foldy-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "--password=${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - foldy-net
+
+  # ── Spring Boot App ───────────────────────────────────
+  app:
+    build:
+      context: ./Foldy
+      dockerfile: Dockerfile
+    container_name: foldy-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    networks:
+      - foldy-net
+
+volumes:
+  foldy-db-data:
+    driver: local
+
+networks:
+  foldy-net:
+    driver: bridge
