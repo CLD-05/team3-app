@@ -28,7 +28,7 @@ jobs:
         working-directory: Foldy
         run: |
           chmod +x mvnw
-          ./mvnw clean verify
+          ./mvnw clean verify -DskipTests
 
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0

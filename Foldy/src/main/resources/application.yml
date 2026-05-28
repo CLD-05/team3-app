@@ -6,7 +6,7 @@ spring:
     name: Foldy
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/foldy?serverTimezone=Asia/Seoul
+    url: ${DB_URL:jdbc:mysql://localhost:3306/foldy?serverTimezone=Asia/Seoul}
     username: ${DB_USERNAME:foldy}
     password: ${DB_PASSWORD:1234}
   jpa:
