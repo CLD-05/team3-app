@@ -358,7 +358,8 @@ function renderTagModal() {
         return;
     }
     allTags.forEach(tag => {
-        const tagId     = tag.idxTag ?? tag.id;
+        const tagId     = getTagId(tag);
+        if (!tagId) return;
         const color     = tag.color || '#4ECDC4';
         const isSelected = tempSelectedTagIds.includes(tagId);
         const btn = document.createElement('button');
@@ -383,7 +384,7 @@ function renderTagModal() {
 function applyTagSelection() {
     selectedTagIds = [...tempSelectedTagIds];
     const tagInfos = selectedTagIds
-        .map(id => allTags.find(t => (t.idxTag ?? t.id) === id))
+        .map(id => allTags.find(t => getTagId(t) === id))
         .filter(Boolean);
     renderTags(tagInfos);
     bootstrap.Modal.getInstance(document.getElementById('tagModal')).hide();
@@ -402,6 +403,12 @@ function renderTags(tags) {
         span.textContent = t.name;
         container.appendChild(span);
     });
+}
+
+function getTagId(tag) {
+    const rawId = tag?.idxTag ?? tag?.tagId ?? tag?.id;
+    const tagId = Number(rawId);
+    return Number.isFinite(tagId) && tagId > 0 ? tagId : null;
 }
 
 // ─────────────────────────────────────────
