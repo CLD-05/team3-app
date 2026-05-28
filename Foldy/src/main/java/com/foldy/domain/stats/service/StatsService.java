@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -135,7 +136,7 @@ public class StatsService {
     // ### API 오류로 페이지 전체가 깨지는 걸 방지합니다.
     // ─────────────────────────────────────────
     private String callGeminiApi(String apiKey, List<String> contents) {
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
 
         String prompt = "너는 10~20대 학습자를 위한 다정한 AI 학습 멘토야. "
                 + "아래 메모들을 분석해서 어떤 내용을 공부 중인지 요약하고 "
@@ -166,9 +167,22 @@ public class StatsService {
 
             return (String) parts.get(0).get("text");
 
+        } catch (HttpStatusCodeException e) {
+            log.warn("[StatsService] Gemini API 호출 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            return "AI 요약을 불러오는 중 오류가 발생했습니다. "
+                    + "Gemini 응답: " + e.getStatusCode() + " "
+                    + extractGeminiErrorMessage(e.getResponseBodyAsString());
         } catch (Exception e) {
             log.warn("[StatsService] Gemini API 호출 실패: {}", e.getMessage());
-            return "AI 요약을 불러오는 중 오류가 발생했습니다. API 키를 확인해주세요.";
+            return "AI 요약을 불러오는 중 오류가 발생했습니다. "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage();
         }
+    }
+
+    private String extractGeminiErrorMessage(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return "응답 본문이 비어 있습니다.";
+        }
+        return responseBody.length() <= 300 ? responseBody : responseBody.substring(0, 300) + "...";
     }
 }
