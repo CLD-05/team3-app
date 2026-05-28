@@ -21,6 +21,7 @@ import com.foldy.domain.memo.dto.MemoListItemDto;
 import com.foldy.domain.memo.dto.MemoTagUpdateDto;
 import com.foldy.domain.memo.dto.MemoUpdateDto;
 import com.foldy.domain.memo.dto.PresignedUrlDto;
+import com.foldy.domain.memo.dto.PresignedUrlRequestDto;
 import com.foldy.domain.memo.dto.ImageConfirmDto;
 import com.foldy.domain.memo.service.MemoService;
 import com.foldy.domain.user.entity.TbUser;
