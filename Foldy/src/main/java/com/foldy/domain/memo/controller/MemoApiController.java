@@ -100,13 +100,13 @@ public class MemoApiController extends BaseController {
 //    }
     
     // 1단계: Presigned URL 발급 — GET /api/memo/{idxMemo}/image/presigned-url
-    @GetMapping("/{idxMemo}/image/presigned-url")
+    @PostMapping("/{idxMemo}/presign")
     public ResponseEntity<ApiResponse<PresignedUrlDto>> getImageUploadUrl(
             @PathVariable Long idxMemo,
-            @RequestParam("fileName") String fileName,
-            @RequestParam("contentType") String contentType) {
+            @RequestBody PresignedUrlRequestDto request) {
         TbUser user = requireUser();
-        return ok(memoService.presignImageUpload(idxMemo, fileName, contentType, user));
+        return ok(memoService.presignImageUpload(
+            idxMemo, request.getFileName(), request.getContentType(), user));
     }
 
     // 2단계: 업로드 완료 통보 — POST /api/memo/{idxMemo}/image/confirm

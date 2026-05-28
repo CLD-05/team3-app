@@ -41,6 +41,12 @@ management:
       enabled: true
     readinessstate:
       enabled: true
-
+      
 server:
   port: 8080
+
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  s3:
+    bucket: ${AWS_S3_BUCKET:team3-foldy-storage}
+    presigned-url-expiration-minutes: 10
