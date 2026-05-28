@@ -11,6 +11,9 @@ permissions:
 
 env:
   AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: team3/foldy
+  CONFIG_REPO: CLD-05/team3-config
+  CONFIG_REPO_PATH: overlays
 
 jobs:
   build-and-push:
@@ -29,12 +32,17 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'maven'
 
       - name: Maven 빌드 (테스트 스킵)
         working-directory: Foldy
         run: |
           chmod +x mvnw
           ./mvnw clean package -DskipTests
+
+      - name: 이미지 태그 생성
+        id: tag
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: 환경 분기 설정
         id: env-setup
@@ -64,16 +72,21 @@ jobs:
           docker push "$IMAGE_URI"
       # ─────────────────────────────────────────
 
+      - name: Slack 알림 - ECR Push 실패
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: '{"text":"❌ ECR Push 실패: ${{ github.repository }} (${{ github.ref_name }})"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
   update-config:
     name: Update Config Repo
     runs-on: ubuntu-latest
     needs: build-and-push
     steps:
       # ── 김강혁 담당 ──────────────────────────
-      - name: Get Short SHA
-        id: sha
-        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
-
       - name: Checkout team3-config Repository
         uses: actions/checkout@v4
         with:
