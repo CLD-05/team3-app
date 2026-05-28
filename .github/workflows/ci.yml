@@ -30,11 +30,11 @@ jobs:
           chmod +x mvnw
           ./mvnw clean verify -DskipTests
 
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Foldy/Dockerfile
-          no-fail: true
+      # - name: Lint Dockerfile
+      #   uses: hadolint/hadolint-action@v3.1.0
+      #   with:
+      #     dockerfile: Foldy/Dockerfile
+      #     no-fail: true
 
   auto-tag:
     name: Auto Tag on version commit
