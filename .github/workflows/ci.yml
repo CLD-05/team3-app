@@ -34,6 +34,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Foldy/Dockerfile
+          config: Foldy/.hadolint.yaml
 
   auto-tag:
     name: Auto Tag on version commit
