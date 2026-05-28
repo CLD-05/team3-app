@@ -174,6 +174,7 @@ public class MemoService {
 	}
 
 	// 2단계: 클라이언트가 S3에 직접 업로드 완료 후 호출 — DB 메타데이터만 저장
+	// 2단계: 클라이언트가 S3에 직접 업로드 완료 후 호출 — DB 메타데이터만 저장
 	public MemoDetailDto.ImageInfo confirmImageUpload(Long idxMemo, ImageConfirmDto dto, TbUser user) {
 	    TbMemo memo = findOwnedMemo(idxMemo, user);
 
@@ -181,6 +182,11 @@ public class MemoService {
 	    String expectedPrefix = "memo/" + memo.getIdxMemo() + "/";
 	    if (!dto.getKey().startsWith(expectedPrefix)) {
 	        throw CustomException.badRequest("잘못된 이미지 경로입니다.");
+	    }
+
+	    // ⬇️ 여기 추가 — S3에 실제로 파일이 올라갔는지 확인
+	    if (!s3Uploader.exists(dto.getKey())) {
+	        throw CustomException.badRequest("S3에 파일이 없습니다. 업로드를 먼저 완료하세요.");
 	    }
 
 	    String publicUrl = String.format("https://%s.s3.%s.amazonaws.com/%s",

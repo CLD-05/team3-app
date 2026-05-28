@@ -1,18 +1,22 @@
 package com.foldy.domain.memo.util;
 
-import com.foldy.domain.memo.dto.PresignedUrlDto;
-import lombok.RequiredArgsConstructor;
+import java.time.Duration;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.foldy.domain.memo.dto.PresignedUrlDto;
+
+import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
-
-import java.time.Duration;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -43,7 +47,7 @@ public class S3Uploader {
         PutObjectRequest putRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(key)
-                .contentType(contentType)
+//                .contentType(contentType)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -83,5 +87,20 @@ public class S3Uploader {
 
     private String sanitize(String name) {
         return name == null ? "file" : name.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+    
+    public boolean exists(String key) {
+        try {
+            s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+            return true;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            throw e;  // 다른 에러는 재throw
+        }
     }
 }
