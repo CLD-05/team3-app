@@ -122,13 +122,7 @@
                     }
                 }
             });
-
-            // [수정] Quill clipboard 가 이미지를 자동 삽입하지 못하도록 image 매처를 무력화.
-            // 이미지 paste 는 아래 document paste 리스너에서만 단독 처리 → 중복 삽입 방지
-            quill.clipboard.addMatcher('IMG', () => {
-                const Delta = Quill.import('delta');
-                return new Delta(); // 빈 delta 반환 = Quill 의 자동 이미지 삽입 차단
-            });
+            // [수정] matcher/커스텀 paste 리스너 제거 → Quill 기본 paste 사용 (이미지 base64 삽입)
         }
 
         // ─────────────────────────────────────────
@@ -146,18 +140,18 @@
         }
 
         // 붙여넣기로 이미지 삽입
-        document.addEventListener('paste', (e) => {
-            if (!isEditMode) return;
-            const items = e.clipboardData?.items;
-            if (!items) return;
-            for (const item of items) {
-                if (item.type.startsWith('image/')) {
-                    e.preventDefault();
-                    insertImageAsBase64(item.getAsFile());
-                    break;
-                }
-            }
-        });
+        // document.addEventListener('paste', (e) => {
+        //     if (!isEditMode) return;
+        //     const items = e.clipboardData?.items;
+        //     if (!items) return;
+        //     for (const item of items) {
+        //         if (item.type.startsWith('image/')) {
+        //             e.preventDefault();
+        //             insertImageAsBase64(item.getAsFile());
+        //             break;
+        //         }
+        //     }
+        // });
 
         function insertImageAsBase64(file) {
             const reader = new FileReader();
