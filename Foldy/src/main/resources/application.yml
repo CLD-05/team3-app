@@ -43,6 +43,9 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
 server:
   port: 8080
 aws:
