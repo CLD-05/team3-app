@@ -95,6 +95,13 @@
 			<artifactId>sts</artifactId>
 			<version>2.25.27</version>
 		</dependency>
+
+		<!--prometheus-->
+		<dependency>
+    	<groupId>io.micrometer</groupId>
+    	<artifactId>micrometer-registry-prometheus</artifactId>
+    	<scope>runtime</scope>
+		</dependency>
 		
 
 	</dependencies>
